@@ -1,6 +1,6 @@
 settings:
   enabled: true
-  accept_cracked: false
+  cracked_players: []
   restore_skins: true
   debug: false
 
@@ -18,6 +18,8 @@ messages:
     - ""
     - "&e/amp reload &7- &fReload plugin configuration &8(op)"
     - "&e/amp version &7- &fShow plugin version and information"
+    - "&e/amp cracked add &7<username> &8- &fAdd username to cracked bypass list &8(op)"
+    - "&e/amp cracked remove &7<username> &8- &fRemove username from cracked bypass list &8(op)"
     - "&e/amp about &7- &fHow the plugin works"
     - ""
     - "&6&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

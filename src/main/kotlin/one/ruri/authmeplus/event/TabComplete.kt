@@ -13,10 +13,21 @@ class TabComplete : TabCompleter {
         args: Array<String>,
     ): MutableList<String> {
         val completions = mutableListOf<String>()
-        if (args.size == 1) {
-            val partial = args[0].lowercase(Locale.ROOT)
-            for (cmd in arrayOf("reload", "version", "about")) {
-                if (cmd.startsWith(partial)) completions.add(cmd)
+        when (args.size) {
+            1 -> {
+                val partial = args[0].lowercase(Locale.ROOT)
+                for (cmd in arrayOf("reload", "version", "about", "cracked")) {
+                    if (cmd.startsWith(partial)) completions.add(cmd)
+                }
+            }
+
+            2 -> {
+                if (args[0].equals("cracked", ignoreCase = true)) {
+                    val partial = args[1].lowercase(Locale.ROOT)
+                    for (cmd in arrayOf("add", "remove")) {
+                        if (cmd.startsWith(partial)) completions.add(cmd)
+                    }
+                }
             }
         }
         return completions

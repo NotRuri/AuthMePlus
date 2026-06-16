@@ -1,7 +1,10 @@
 package one.ruri.authmeplus.command
 
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import one.ruri.authmeplus.Logger
 import one.ruri.authmeplus.Utils
+import one.ruri.authmeplus.protocol.Protocol
 import org.bukkit.command.CommandSender
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.plugin.java.JavaPlugin
@@ -11,6 +14,7 @@ class Dispatch(
     private val plugin: JavaPlugin,
     private var cfg: FileConfiguration,
     private val log: Logger,
+    private val protocol: Protocol? = null,
 ) {
     fun dispatch(
         sender: CommandSender,
@@ -24,7 +28,11 @@ class Dispatch(
         return when (args[0].lowercase(Locale.ROOT)) {
             "reload" -> {
                 val newCfg = Reload.execute(sender, plugin, log, cfg)
-                if (newCfg != null) cfg = newCfg
+                if (newCfg != null) {
+                    cfg = newCfg
+                    val crackedPlayers = newCfg.getStringList("settings.cracked_players").toSet()
+                    protocol?.updateCrackedPlayers(crackedPlayers)
+                }
                 true
             }
 
@@ -34,6 +42,16 @@ class Dispatch(
 
             "about" -> {
                 About.execute(sender, cfg)
+            }
+
+            "cracked" -> {
+                if (args.size < 3) {
+                    sender.sendMessage(Component.text("Usage: /amp cracked <add|remove> <username>", NamedTextColor.RED))
+                    true
+                } else {
+                    Cracked.execute(sender, plugin, log, cfg, protocol!!, args[1], args[2])
+                    true
+                }
             }
 
             else -> {

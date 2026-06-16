@@ -31,10 +31,17 @@ data class SkinData(
     val signature: String,
 )
 
+data class VerificationResult(
+    val uuid: UUID,
+    val verified: Boolean,
+)
+
 internal class Session(
     private val plugin: JavaPlugin,
     private val log: Logger,
+    crackedPlayers: Set<String> = emptySet(),
 ) {
+    private var crackedPlayers: Set<String> = crackedPlayers.map { it.lowercase() }.toSet()
     private val protocolManager = ProtocolLibrary.getProtocolManager()
     private val verifiedIps = ConcurrentHashMap.newKeySet<String>()
     private val verifiedUUIDs = ConcurrentHashMap<String, UUID>()
@@ -87,6 +94,17 @@ internal class Session(
         log.info("Listeners registered")
     }
 
+    fun updateCrackedPlayers(players: Set<String>) {
+        crackedPlayers = players.map { it.lowercase() }.toSet()
+        log.debug("Updated cracked players list: ${crackedPlayers.size} entries")
+    }
+
+    private fun clearVerifiedState(ip: String) {
+        verifiedIps.remove(ip)
+        verifiedUUIDs.remove(ip)
+        verifiedSkins.remove(ip)
+    }
+
     fun unregister() {
         protocolManager.removePacketListeners(plugin)
         verifiedIps.clear()
@@ -133,12 +151,20 @@ internal class Session(
         }
 
         log.debug("Login start for $username (${address.address?.hostAddress ?: "unknown"})")
+        val ip = address.address?.hostAddress
+
+        if (username.lowercase() in crackedPlayers) {
+            log.debug("$username is in cracked_players - letting pass through")
+            if (ip != null) clearVerifiedState(ip)
+            return
+        }
 
         val status = Utils.checkAccount(log, username)
         log.debug("Mojang API name check for $username: $status")
 
         if (status != AccountType.PREMIUM) {
             log.debug("$username not premium ($status) - letting pass through")
+            if (ip != null) clearVerifiedState(ip)
             return
         }
 
@@ -188,7 +214,7 @@ internal class Session(
         }
 
         val sharedSecret = decryptSharedSecret(event, session, address, sessionPlayer) ?: return
-        val realUuid = verifySession(session, sharedSecret, address, sessionPlayer) ?: return
+        val result = verifySession(session, sharedSecret, address, sessionPlayer)
 
         Bukkit.getGlobalRegionScheduler().run(plugin) {
             try {
@@ -200,9 +226,13 @@ internal class Session(
                 }
 
                 log.debug("Encryption enabled for ${session.username}")
-                support.injectFakeStart(sessionPlayer, realUuid, session.username)
-                address.address?.hostAddress?.let(verifiedIps::add)
-                log.info("Premium session fully verified: ${session.username} ($realUuid)")
+                support.injectFakeStart(sessionPlayer, result.uuid, session.username)
+                if (result.verified) {
+                    address.address?.hostAddress?.let(verifiedIps::add)
+                    log.info("Premium session fully verified: ${session.username} (${result.uuid})")
+                } else {
+                    log.info("Session unverifiable for ${session.username} - treating as cracked")
+                }
             } catch (e: Exception) {
                 log.warning("Failed to finalize premium login: ${e.message}")
                 support.disconnectClient(sessionPlayer, "Login finalization failed")
@@ -259,7 +289,7 @@ internal class Session(
         sharedSecret: SecretKey,
         address: InetSocketAddress,
         player: Player,
-    ): UUID? {
+    ): VerificationResult {
         log.debug("Verify token matched for ${session.username} - calling hasJoined")
 
         val serverHash = support.computeServerHash("", sharedSecret, keyPair.public)
@@ -280,9 +310,9 @@ internal class Session(
                 httpClient.send(request, HttpResponse.BodyHandlers.ofString())
             } catch (e: Exception) {
                 log.warning("Session verification request failed for ${session.username}: ${e.message}")
-                support.disconnectClient(player, "Invalid session")
-                pendingSessions.remove(address)
-                return null
+                log.info("Falling back to cracked mode for ${session.username}")
+                val offlineUuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + session.username).toByteArray())
+                return VerificationResult(offlineUuid, false)
             }
 
         val httpCode = response.statusCode()
@@ -290,17 +320,17 @@ internal class Session(
 
         if (httpCode != 200 || response.body().isBlank()) {
             log.warning("Session verification FAILED for ${session.username} (HTTP $httpCode)")
-            support.disconnectClient(player, "Invalid session")
-            pendingSessions.remove(address)
-            return null
+            log.info("Falling back to cracked mode for ${session.username}")
+            val offlineUuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + session.username).toByteArray())
+            return VerificationResult(offlineUuid, false)
         }
 
         val uuidStr = support.extractUuidFromJson(response.body())
         if (uuidStr == null) {
             log.warning("Could not parse hasJoined response for ${session.username}: ${response.body()}")
-            support.disconnectClient(player, "Invalid session data")
-            pendingSessions.remove(address)
-            return null
+            log.info("Falling back to cracked mode for ${session.username}")
+            val offlineUuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + session.username).toByteArray())
+            return VerificationResult(offlineUuid, false)
         }
 
         val realUuid = UUID.fromString(uuidStr)
@@ -344,6 +374,6 @@ internal class Session(
             log.warning("Failed to parse skin data from hasJoined response: ${e.message}")
         }
 
-        return realUuid
+        return VerificationResult(realUuid, true)
     }
 }

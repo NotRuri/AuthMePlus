@@ -19,10 +19,11 @@ class Main : JavaPlugin() {
         log = Logger(logger)
         log.debug = config.getBoolean("settings.debug", false)
 
-        protocolHandler = Protocol(this, log).also { it.register() }
+        val crackedPlayers = config.getStringList("settings.cracked_players").toSet()
+        protocolHandler = Protocol(this, log, crackedPlayers).also { it.register() }
         log.info("ProtocolLib: v${Protocol.protocolLibVersion()}")
 
-        val dispatch = Dispatch(this, config, log)
+        val dispatch = Dispatch(this, config, log, protocolHandler!!)
         val command = Command(dispatch)
         val tabComplete = TabComplete()
         val preLogin = PreLogin(protocolHandler!!, log)
@@ -37,10 +38,7 @@ class Main : JavaPlugin() {
 
         val cfg = config
         log.info(
-            "AuthMePlus enabled (accept_cracked=${cfg.getBoolean(
-                "settings.accept_cracked",
-                false,
-            )}, enabled=${cfg.getBoolean("settings.enabled", true)})",
+            "AuthMePlus enabled (cracked_players=${crackedPlayers.size}, enabled=${cfg.getBoolean("settings.enabled", true)})",
         )
     }
 
