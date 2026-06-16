@@ -1,9 +1,10 @@
 name: AuthMePlus
-version: "1.2.0"
+version: "1.3.0"
 main: one.ruri.authmeplus.Main
-api-version: 26.1
+api: "26.1"
 folia-supported: true
 depend:
   - AuthMe
+  - ProtocolLib
 commands:
   amp:

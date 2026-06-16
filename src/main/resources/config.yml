@@ -1,7 +1,6 @@
 settings:
   enableplugin: true
   accept_cracked: false
-  allow_local_ips: true
 
 messages:
   # General

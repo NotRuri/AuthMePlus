@@ -1,0 +1,13 @@
+{
+    "lsp": {
+        "kotlin-language-server": {
+            "settings": {
+                "compiler": {
+                    "jvm": {
+                        "target": "25"
+                    }
+                }
+            }
+        }
+    }
+}

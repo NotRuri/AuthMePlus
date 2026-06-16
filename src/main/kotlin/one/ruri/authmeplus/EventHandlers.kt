@@ -3,22 +3,22 @@ package one.ruri.authmeplus
 import fr.xephi.authme.api.v3.AuthMeApi
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import org.bukkit.Bukkit
+import one.ruri.authmeplus.protocol.Protocol
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.configuration.file.FileConfiguration
-import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.Locale
 
-class Handlers(
+class EventHandlers(
     private val plugin: JavaPlugin,
     private var cfg: FileConfiguration,
+    private val protocolLib: Protocol,
 ) : Listener,
     CommandExecutor,
     TabCompleter {
@@ -36,62 +36,58 @@ class Handlers(
 
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
-        if (!cfg.getBoolean("settings.enableplugin", true)) return
-
         val player = event.player
         val name = player.name
+        val ip = player.address?.address?.hostAddress ?: "unknown"
 
-        val pAddress = player.address?.address
+        plugin.logger.fine("Join event received: $name ($ip)")
 
-        if (pAddress == null || !Utils.isIpSafe(pAddress, cfg)) return
-
-        if (api.isAuthenticated(player)) return
-
-        Bukkit.getAsyncScheduler().runNow(plugin) {
-            val premiumResult = Utils.checkUsernameIsPremium(plugin.logger, name)
-
-            when (premiumResult) {
-                1 -> {
-                    player.scheduler.run(plugin, { _ ->
-                        if (!player.isOnline) return@run
-
-                        if (!api.isRegistered(name)) {
-                            val randomPass =
-                                java.util.UUID
-                                    .randomUUID()
-                                    .toString()
-                                    .replace("-", "")
-                            api.registerPlayer(name, randomPass)
-                            plugin.logger.info("Auto-registered premium player: $name")
-                        }
-
-                        if (!api.isAuthenticated(player)) {
-                            api.forceLogin(player)
-                            player.sendMessage(
-                                Utils.getMessage(cfg, "messages.auto_login_premium", "&aYour premium account has been verified!"),
-                            )
-                            plugin.logger.info("Auto-logged premium player: $name")
-                        }
-                    }, null)
-                }
-
-                0 -> {
-                    if (!cfg.getBoolean("settings.accept_cracked", false)) {
-                        player.scheduler.run(plugin, { _ ->
-                            if (player.isOnline) {
-                                player.kick(
-                                    Utils.getMessage(cfg, "messages.kick_not_premium", "&cNot a premium account."),
-                                )
-                            }
-                        }, null)
-                    }
-                }
-
-                else -> {
-                    plugin.logger.warning("Mojang API check failed for $name - skipping premium auto-login.")
-                }
-            }
+        if (!cfg.getBoolean("settings.enableplugin", true)) {
+            plugin.logger.fine("Plugin disabled via config - skipping auth handling for $name")
+            return
         }
+
+        if (api.isAuthenticated(player)) {
+            plugin.logger.fine("$name already authenticated via AuthMe - skipping")
+            return
+        }
+
+        if (protocolLib.isVerified(player.address)) {
+            plugin.logger.info("ProtocolLib session check PASSED for $name - auto-logging in")
+            player.scheduler.run(plugin, { _ ->
+                if (!player.isOnline) {
+                    plugin.logger.warning("$name went offline before ProtocolLib auto-login could complete")
+                    return@run
+                }
+
+                if (!api.isRegistered(name)) {
+                    val randomPass =
+                        java.util.UUID
+                            .randomUUID()
+                            .toString()
+                            .replace("-", "")
+                    api.registerPlayer(name, randomPass)
+                    plugin.logger.info("Auto-registered ProtocolLib-verified player: $name")
+                }
+
+                if (!api.isAuthenticated(player)) {
+                    api.forceLogin(player)
+                    player.sendMessage(
+                        Utils.getMessage(
+                            cfg,
+                            "messages.auto_login_premium",
+                            "&aYour premium account has been verified!",
+                        ),
+                    )
+                    plugin.logger.info("Auto-logged ProtocolLib-verified player: $name")
+                } else {
+                    plugin.logger.fine("$name already authenticated (ProtocolLib path) - no action needed")
+                }
+            }, null)
+            return
+        }
+
+        plugin.logger.fine("ProtocolLib session not verified for $name - using normal AuthMe handling")
     }
 
     override fun onCommand(

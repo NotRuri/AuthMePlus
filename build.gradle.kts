@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "one.ruri"
-version = "1.2.0"
+version = "1.3.0"
 
 java {
     toolchain {
@@ -38,6 +38,7 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.1.2.build.70-stable")
     compileOnly("fr.xephi:authme:5.7.0")
+    compileOnly("net.dmulloy2:ProtocolLib:5.4.0")
     implementation(kotlin("stdlib"))
 }
 
@@ -73,8 +74,8 @@ modrinth {
     versionNumber.set(project.version.toString())
     versionType.set("release")
     uploadFile.set(tasks.jar)
-    gameVersions.addAll("1.21.4")
-    loaders.addAll("paper", "spigot", "bukkit")
+    gameVersions.addAll("26.1.2")
+    loaders.addAll("paper", "folia")
     changelog.set(System.getenv("CHANGELOG"))
     dependencies {
         required.project("authmereloaded")

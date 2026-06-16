@@ -11,6 +11,12 @@ import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.util.logging.Logger
 
+enum class AccountType {
+    PREMIUM,
+    OFFLINE,
+    UNKNOWN,
+}
+
 object Utils {
     private val LEGACY = LegacyComponentSerializer.legacyAmpersand()
 
@@ -22,20 +28,10 @@ object Utils {
 
     fun color(text: String): Component = LEGACY.deserialize(text)
 
-    fun isIpSafe(
-        address: InetAddress?,
-        cfg: FileConfiguration,
-    ): Boolean {
-        if (address == null) return false
-        if (address.isLoopbackAddress || address.isAnyLocalAddress) return false
-        if (address.isSiteLocalAddress && !cfg.getBoolean("settings.allow_local_ips", false)) return false
-        return true
-    }
-
-    fun checkUsernameIsPremium(
+    fun checkAccount(
         logger: Logger,
         username: String,
-    ): Int {
+    ): AccountType {
         var con: HttpURLConnection? = null
         try {
             val url = "https://api.mojang.com/users/profiles/minecraft/$username"
@@ -50,13 +46,13 @@ object Utils {
                     val sb = StringBuilder()
                     var line: String?
                     while (reader.readLine().also { line = it } != null) sb.append(line)
-                    return if (sb.isNotEmpty()) 1 else 0
+                    return if (sb.isNotEmpty()) AccountType.PREMIUM else AccountType.OFFLINE
                 }
             }
-            return 0
+            return AccountType.OFFLINE
         } catch (e: Exception) {
             logger.warning("Error checking Mojang API for $username: ${e.message}")
-            return -1
+            return AccountType.UNKNOWN
         } finally {
             con?.disconnect()
         }

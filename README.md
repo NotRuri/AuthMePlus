@@ -5,6 +5,7 @@
 ## Requirements
 
 - Java 25
+- Minecraft 26.1.x
 - Paper / Folia server
 - **AuthMe Reloaded** / **AuthMe ReReloaded**
 

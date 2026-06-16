@@ -8,6 +8,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: write
     steps:
@@ -32,8 +33,9 @@ jobs:
           files: build/libs/*.jar
           generate_release_notes: true
 
-      # - name: Publish to Modrinth
-      #   run: ./gradlew modrinth
-      #   env:
-      #     MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-      #     CHANGELOG: ${{ github.event.head_commit.message }}
+      - name: Publish to Modrinth
+        run: ./gradlew modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          VERSION: ${{ github.event.release.tag_name }}
+          CHANGELOG: ${{ github.event.release.body }}

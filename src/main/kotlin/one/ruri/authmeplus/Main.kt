@@ -1,22 +1,34 @@
 package one.ruri.authmeplus
 
+import one.ruri.authmeplus.protocol.Protocol
 import org.bukkit.plugin.java.JavaPlugin
 
 class Main : JavaPlugin() {
-    private var handlers: Handlers? = null
+    private var eventHandlers: EventHandlers? = null
+    private var protocolHandler: Protocol? = null
 
     override fun onEnable() {
         saveDefaultConfig()
         reloadConfig()
 
-        handlers = Handlers(this, config)
-        handlers!!.register()
+        protocolHandler = Protocol(this).also { it.register() }
+        logger.info("ProtocolLib v${Protocol.protocolLibVersion()} - real session verification enabled")
 
-        logger.info("AuthMePlus enabled")
+        eventHandlers = EventHandlers(this, config, protocolHandler!!)
+        eventHandlers!!.register()
+
+        val cfg = config
+        logger.info(
+            "AuthMePlus enabled (accept_cracked=${cfg.getBoolean(
+                "settings.accept_cracked",
+                false,
+            )}, enabled=${cfg.getBoolean("settings.enableplugin", true)})",
+        )
     }
 
     override fun onDisable() {
-        handlers?.shutdown()
+        protocolHandler?.unregister()
+        eventHandlers?.shutdown()
         logger.info("AuthMePlus disabled")
     }
 }
