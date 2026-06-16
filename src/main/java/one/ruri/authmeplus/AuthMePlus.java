@@ -9,14 +9,10 @@ import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
-import javax.crypto.Cipher;
-import javax.crypto.spec.SecretKeySpec;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -38,11 +34,6 @@ public class AuthMePlus extends JavaPlugin implements Listener {
     private File linkedFile;
     private FileConfiguration linkedConfig;
     private FileConfiguration cfg;
-
-    // Static 16-byte key for AES-128
-    private static final byte[] KEY_BYTES = "Pr3m1umByp4ssK3y".getBytes(
-        StandardCharsets.UTF_8
-    );
 
     @Override
     public void onEnable() {
@@ -207,44 +198,6 @@ public class AuthMePlus extends JavaPlugin implements Listener {
 
     // ----------------------------------------------------------------
 
-    // --- AES encryption system ---
-    private String encryptIp(String ip) {
-        try {
-            Key key = new SecretKeySpec(KEY_BYTES, "AES");
-            Cipher c = Cipher.getInstance("AES");
-            c.init(Cipher.ENCRYPT_MODE, key);
-            byte[] encVal = c.doFinal(ip.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(encVal);
-        } catch (Exception e) {
-            getLogger().warning("Error encrypting IP: " + e.getMessage());
-            return Base64.getEncoder().encodeToString(
-                ip.getBytes(StandardCharsets.UTF_8)
-            );
-        }
-    }
-
-    private String decryptIp(String encryptedIp) {
-        try {
-            Key key = new SecretKeySpec(KEY_BYTES, "AES");
-            Cipher c = Cipher.getInstance("AES");
-            c.init(Cipher.DECRYPT_MODE, key);
-            byte[] decordedValue = Base64.getDecoder().decode(encryptedIp);
-            byte[] decValue = c.doFinal(decordedValue);
-            return new String(decValue, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            try {
-                return new String(
-                    Base64.getDecoder().decode(encryptedIp),
-                    StandardCharsets.UTF_8
-                );
-            } catch (Exception ex) {
-                return encryptedIp;
-            }
-        }
-    }
-
-    // ----------------------------------
-
     private void saveLinkedConfigAsync() {
         Bukkit.getAsyncScheduler().runNow(this, task -> {
             try {
@@ -279,14 +232,14 @@ public class AuthMePlus extends JavaPlugin implements Listener {
             return;
         }
 
-        List<String> encryptedIps = this.linkedConfig.getStringList(
+        List<String> linkedIps = this.linkedConfig.getStringList(
             lower + ".ips"
         );
         boolean isIpAuthorized = false;
 
-        if (currentIp != null && encryptedIps != null) {
-            for (String encIp : encryptedIps) {
-                if (currentIp.equals(decryptIp(encIp))) {
+        if (currentIp != null && linkedIps != null) {
+            for (String linkedIp : linkedIps) {
+                if (currentIp.equals(linkedIp)) {
                     isIpAuthorized = true;
                     break;
                 }
@@ -529,22 +482,22 @@ public class AuthMePlus extends JavaPlugin implements Listener {
                         return;
                     }
 
-                    List<String> encryptedIps = this.linkedConfig.getStringList(
+                    List<String> linkedIps = this.linkedConfig.getStringList(
                         lower + ".ips"
                     );
-                    if (encryptedIps == null) encryptedIps = new ArrayList<>();
+                    if (linkedIps == null) linkedIps = new ArrayList<>();
 
                     boolean alreadyLinked = false;
-                    for (String encIp : encryptedIps) {
-                        if (currentIp.equals(decryptIp(encIp))) {
+                    for (String linkedIp : linkedIps) {
+                        if (currentIp.equals(linkedIp)) {
                             alreadyLinked = true;
                             break;
                         }
                     }
 
                     if (!alreadyLinked) {
-                        encryptedIps.add(encryptIp(currentIp));
-                        this.linkedConfig.set(lower + ".ips", encryptedIps);
+                        linkedIps.add(currentIp);
+                        this.linkedConfig.set(lower + ".ips", linkedIps);
                         this.linkedConfig.set(lower + ".prompted", true);
 
                         saveLinkedConfigAsync();
@@ -554,9 +507,7 @@ public class AuthMePlus extends JavaPlugin implements Listener {
                                 "&aYour premium account is now linked!"
                             )
                         );
-                        getLogger().info(
-                            "Linked " + p.getName() + " to IP (encrypted)"
-                        );
+                        getLogger().info("Linked " + p.getName() + " to IP");
                     } else {
                         p.sendMessage(
                             getMessage(
@@ -578,10 +529,10 @@ public class AuthMePlus extends JavaPlugin implements Listener {
         String currentIp,
         String[] args
     ) {
-        List<String> encryptedIps = this.linkedConfig.getStringList(
+        List<String> linkedIps = this.linkedConfig.getStringList(
             lower + ".ips"
         );
-        if (encryptedIps == null) encryptedIps = new ArrayList<>();
+        if (linkedIps == null) linkedIps = new ArrayList<>();
 
         if (args.length == 1) {
             if (currentIp == null) {
@@ -592,17 +543,17 @@ public class AuthMePlus extends JavaPlugin implements Listener {
             }
 
             boolean removed = false;
-            for (int i = 0; i < encryptedIps.size(); i++) {
-                if (currentIp.equals(decryptIp(encryptedIps.get(i)))) {
-                    encryptedIps.remove(i);
+            for (int i = 0; i < linkedIps.size(); i++) {
+                if (currentIp.equals(linkedIps.get(i))) {
+                    linkedIps.remove(i);
                     removed = true;
                     break;
                 }
             }
 
             if (removed) {
-                this.linkedConfig.set(lower + ".ips", encryptedIps);
-                if (encryptedIps.isEmpty()) this.linkedConfig.set(
+                this.linkedConfig.set(lower + ".ips", linkedIps);
+                if (linkedIps.isEmpty()) this.linkedConfig.set(
                     lower + ".prompted",
                     false
                 );
@@ -640,17 +591,17 @@ public class AuthMePlus extends JavaPlugin implements Listener {
 
         String ipToRemove = args[1];
         boolean removed = false;
-        for (int i = 0; i < encryptedIps.size(); i++) {
-            if (ipToRemove.equals(decryptIp(encryptedIps.get(i)))) {
-                encryptedIps.remove(i);
+        for (int i = 0; i < linkedIps.size(); i++) {
+            if (ipToRemove.equals(linkedIps.get(i))) {
+                linkedIps.remove(i);
                 removed = true;
                 break;
             }
         }
 
         if (removed) {
-            this.linkedConfig.set(lower + ".ips", encryptedIps);
-            if (encryptedIps.isEmpty()) this.linkedConfig.set(
+            this.linkedConfig.set(lower + ".ips", linkedIps);
+            if (linkedIps.isEmpty()) this.linkedConfig.set(
                 lower + ".prompted",
                 false
             );
@@ -687,10 +638,10 @@ public class AuthMePlus extends JavaPlugin implements Listener {
         }
 
         if (args.length == 2 && args[1].equalsIgnoreCase("sure")) {
-            List<String> encryptedIps = this.linkedConfig.getStringList(
+            List<String> linkedIps = this.linkedConfig.getStringList(
                 lower + ".ips"
             );
-            if (encryptedIps == null || encryptedIps.isEmpty()) {
+            if (linkedIps == null || linkedIps.isEmpty()) {
                 p.sendMessage(
                     getMessage("messages.list_empty", "&eNo allowed IPs.")
                 );
@@ -698,13 +649,12 @@ public class AuthMePlus extends JavaPlugin implements Listener {
                 p.sendMessage(
                     getMessage("messages.list_header", "&aLinked IPs:")
                 );
-                for (String encIp : encryptedIps) {
-                    String decrypted = decryptIp(encIp);
+                for (String linkedIp : linkedIps) {
                     String format = getMessage(
                         "messages.list_format",
                         "&b - %ip%"
                     );
-                    p.sendMessage(format.replace("%ip%", decrypted));
+                    p.sendMessage(format.replace("%ip%", linkedIp));
                 }
             }
         } else {

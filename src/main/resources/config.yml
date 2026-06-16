@@ -43,8 +43,8 @@ messages:
     - "&eyou play with an official Minecraft account (Premium)."
     - "&a&nYour data protection:&r"
     - "&f- Your IP address is only stored with your explicit consent."
-    - "&f- IPs are &cencrypted (AES)&f in our files."
-    - "&f- Nobody (not even administrators) can easily read them in plain text."
+     - "&f- IPs are stored in plain text in the linked file."
+     - "&f- Administrators with file access can read them."
     - "&f- You can delete your data at any time with &c/premium revoke all&f."
 
   # Login events

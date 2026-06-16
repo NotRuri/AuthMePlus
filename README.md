@@ -2,7 +2,7 @@
 
 **AuthMePlus** is a Bukkit/Spigot plugin designed to streamline authentication for premium Minecraft players by allowing automatic login based on trusted IP addresses.
 
-It integrates with **AuthMe Reloaded** and securely links player accounts to their IPs using AES encryption.
+It integrates with **AuthMe Reloaded** and links player accounts to their IPs.
 
 ## Features
 
@@ -57,14 +57,8 @@ It integrates with **AuthMe Reloaded** and securely links player accounts to the
 
 ### `linked.yml`
 
-- Stores encrypted IPs per player
+- Stores linked IPs per player
 - Automatically managed by the plugin
-
-## Security
-
-- Uses **AES-128 encryption** for IP storage
-- Fallback to Base64 if encryption fails
-- No plain IPs stored in files
 
 ## Compatibility
 
