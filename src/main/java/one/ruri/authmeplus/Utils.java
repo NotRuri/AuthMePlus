@@ -42,10 +42,7 @@ public final class Utils {
         return true;
     }
 
-    public static boolean checkUsernameIsPremium(
-        Logger logger,
-        String username
-    ) {
+    public static int checkUsernameIsPremium(Logger logger, String username) {
         HttpURLConnection con = null;
         try {
             String url =
@@ -68,10 +65,10 @@ public final class Utils {
                     StringBuilder sb = new StringBuilder();
                     String line;
                     while ((line = in.readLine()) != null) sb.append(line);
-                    return sb.length() > 0;
+                    return sb.length() > 0 ? 1 : 0;
                 }
             }
-            return false;
+            return 0;
         } catch (Exception e) {
             logger.warning(
                 "Error checking Mojang API for " +
@@ -79,7 +76,7 @@ public final class Utils {
                     ": " +
                     e.getMessage()
             );
-            return false;
+            return -1;
         } finally {
             if (con != null) con.disconnect();
         }
