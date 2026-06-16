@@ -74,10 +74,11 @@ modrinth {
     versionNumber.set(project.version.toString())
     versionType.set("release")
     uploadFile.set(tasks.jar)
-    gameVersions.addAll("26.1.2")
+    gameVersions.addAll("26.1", "26.1.1", "26.1.2")
     loaders.addAll("paper", "folia")
     changelog.set(System.getenv("CHANGELOG"))
     dependencies {
-        required.project("authmereloaded")
+        optional.project("authmereloaded")
+        optional.project("authmerereloaded")
     }
 }
