@@ -37,6 +37,7 @@ internal class Session(
 ) {
     private val protocolManager = ProtocolLibrary.getProtocolManager()
     private val verifiedIps = ConcurrentHashMap.newKeySet<String>()
+    private val verifiedUUIDs = ConcurrentHashMap<String, UUID>()
     private val pendingSessions = ConcurrentHashMap<InetSocketAddress, PendingSession>()
     private val verifiedSkins = ConcurrentHashMap<String, SkinData>()
     private val httpClient =
@@ -62,6 +63,11 @@ internal class Session(
 
     fun isVerified(address: InetSocketAddress?): Boolean = address?.address?.hostAddress in verifiedIps
 
+    fun getVerifiedUUID(address: InetSocketAddress?): UUID? {
+        val ip = address?.address?.hostAddress ?: return null
+        return verifiedUUIDs[ip]
+    }
+
     fun getSkinData(address: InetSocketAddress?): SkinData? {
         val ip = address?.address?.hostAddress ?: return null
         return verifiedSkins[ip]
@@ -84,6 +90,7 @@ internal class Session(
     fun unregister() {
         protocolManager.removePacketListeners(plugin)
         verifiedIps.clear()
+        verifiedUUIDs.clear()
         verifiedSkins.clear()
         pendingSessions.clear()
         log.info("Listeners unregistered")
@@ -298,6 +305,11 @@ internal class Session(
 
         val realUuid = UUID.fromString(uuidStr)
         log.info("Session VERIFIED for ${session.username} - Mojang UUID: $realUuid")
+
+        val ip = address.address?.hostAddress
+        if (ip != null) {
+            verifiedUUIDs[ip] = realUuid
+        }
 
         val body = response.body()
         try {

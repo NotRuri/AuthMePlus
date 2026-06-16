@@ -3,6 +3,7 @@ package one.ruri.authmeplus
 import one.ruri.authmeplus.command.Dispatch
 import one.ruri.authmeplus.event.Command
 import one.ruri.authmeplus.event.PlayerJoin
+import one.ruri.authmeplus.event.PreLogin
 import one.ruri.authmeplus.event.TabComplete
 import one.ruri.authmeplus.protocol.Protocol
 import org.bukkit.plugin.java.JavaPlugin
@@ -24,8 +25,10 @@ class Main : JavaPlugin() {
         val dispatch = Dispatch(this, config, log)
         val command = Command(dispatch)
         val tabComplete = TabComplete()
+        val preLogin = PreLogin(protocolHandler!!, log)
         val playerJoin = PlayerJoin(this, config, protocolHandler!!, log)
 
+        server.pluginManager.registerEvents(preLogin, this)
         server.pluginManager.registerEvents(playerJoin, this)
         getCommand("amp")?.let {
             it.setExecutor(command)

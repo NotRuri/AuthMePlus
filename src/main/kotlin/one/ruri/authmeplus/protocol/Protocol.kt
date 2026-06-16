@@ -13,6 +13,8 @@ class Protocol(
 
     fun isVerified(address: InetSocketAddress?): Boolean = sessionHandler.isVerified(address)
 
+    fun getVerifiedUUID(address: InetSocketAddress?): java.util.UUID? = sessionHandler.getVerifiedUUID(address)
+
     fun getSkinData(address: InetSocketAddress?): SkinData? = sessionHandler.getSkinData(address)
 
     fun register() {
