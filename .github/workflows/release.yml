@@ -21,6 +21,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Build
+        run: ./gradlew build
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
