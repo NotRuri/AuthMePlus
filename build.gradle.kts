@@ -1,5 +1,5 @@
 plugins {
-    java
+    kotlin("jvm") version "2.4.0"
     id("com.diffplug.spotless") version "8.6.0"
 }
 
@@ -13,8 +13,8 @@ java {
 }
 
 spotless {
-    java {
-        googleJavaFormat()
+    kotlin {
+        ktlint()
     }
 }
 
@@ -33,6 +33,7 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.1.2.build.70-stable")
     compileOnly(files("libs/AuthMeReloaded-5.6.0.jar"))
+    implementation(kotlin("stdlib"))
 }
 
 tasks.withType<JavaCompile> {
