@@ -1,14 +1,20 @@
-# AuthMePlus
+# AuthMe+
 
-**AuthMePlus** is a Paper plugin designed to streamline authentication for premium Minecraft players.
+A Paper plugin designed to streamline authentication for premium Minecraft players.
+
+## Features
+
+- Auto-login for premium players for offline servers.
+- Restore premium player skins.
 
 ## Requirements
 
-- Java 25
 - Minecraft 26.1.x
-- Paper / Folia server
-- **AuthMe Reloaded** / **AuthMe ReReloaded**
+- Java 25
+- AuthMe
+- [ProtocolLib](https://github.com/dmulloy2/ProtocolLib/)
 
-## Credits
+## Compatibility
 
-- [PremiumAuthBypass](https://github.com/akanoka/premiumauthbypass).
+- [AuthMeReloaded](https://modrinth.com/plugin/authmereloaded)
+- [AuthMeReReloaded](https://modrinth.com/plugin/authmerereloaded)
