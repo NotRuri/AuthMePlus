@@ -43,7 +43,7 @@ internal class Session(
 ) {
     private var crackedPlayers: Set<String> = crackedPlayers.map { it.lowercase() }.toSet()
     private val protocolManager = ProtocolLibrary.getProtocolManager()
-    private val verifiedIps = ConcurrentHashMap.newKeySet<String>()
+    private val verifiedPlayers = ConcurrentHashMap.newKeySet<String>()
     private val verifiedUUIDs = ConcurrentHashMap<String, UUID>()
     private val pendingSessions = ConcurrentHashMap<InetSocketAddress, PendingSession>()
     private val verifiedSkins = ConcurrentHashMap<String, SkinData>()
@@ -68,17 +68,11 @@ internal class Session(
         log.info("RSA key pair generated (1024-bit)")
     }
 
-    fun isVerified(address: InetSocketAddress?): Boolean = address?.address?.hostAddress in verifiedIps
+    fun isVerified(name: String): Boolean = name.lowercase() in verifiedPlayers
 
-    fun getVerifiedUUID(address: InetSocketAddress?): UUID? {
-        val ip = address?.address?.hostAddress ?: return null
-        return verifiedUUIDs[ip]
-    }
+    fun getVerifiedUUID(name: String): UUID? = verifiedUUIDs[name.lowercase()]
 
-    fun getSkinData(address: InetSocketAddress?): SkinData? {
-        val ip = address?.address?.hostAddress ?: return null
-        return verifiedSkins[ip]
-    }
+    fun getSkinData(name: String): SkinData? = verifiedSkins[name.lowercase()]
 
     fun register() {
         log.info("Registering listeners...")
@@ -99,15 +93,16 @@ internal class Session(
         log.debug("Updated cracked players list: ${crackedPlayers.size} entries")
     }
 
-    private fun clearVerifiedState(ip: String) {
-        verifiedIps.remove(ip)
-        verifiedUUIDs.remove(ip)
-        verifiedSkins.remove(ip)
+    private fun clearVerifiedState(name: String) {
+        val nlc = name.lowercase()
+        verifiedPlayers.remove(nlc)
+        verifiedUUIDs.remove(nlc)
+        verifiedSkins.remove(nlc)
     }
 
     fun unregister() {
         protocolManager.removePacketListeners(plugin)
-        verifiedIps.clear()
+        verifiedPlayers.clear()
         verifiedUUIDs.clear()
         verifiedSkins.clear()
         pendingSessions.clear()
@@ -151,11 +146,10 @@ internal class Session(
         }
 
         log.debug("Login start for $username (${address.address?.hostAddress ?: "unknown"})")
-        val ip = address.address?.hostAddress
 
         if (username.lowercase() in crackedPlayers) {
             log.debug("$username is in cracked_players - letting pass through")
-            if (ip != null) clearVerifiedState(ip)
+            clearVerifiedState(username)
             return
         }
 
@@ -164,7 +158,7 @@ internal class Session(
 
         if (status != AccountType.PREMIUM) {
             log.debug("$username not premium ($status) - letting pass through")
-            if (ip != null) clearVerifiedState(ip)
+            clearVerifiedState(username)
             return
         }
 
@@ -214,7 +208,7 @@ internal class Session(
         }
 
         val sharedSecret = decryptSharedSecret(event, session, address, sessionPlayer) ?: return
-        val result = verifySession(session, sharedSecret, address, sessionPlayer)
+        val result = verifySession(session, sharedSecret, sessionPlayer)
 
         Bukkit.getGlobalRegionScheduler().run(plugin) {
             try {
@@ -228,7 +222,7 @@ internal class Session(
                 log.debug("Encryption enabled for ${session.username}")
                 support.injectFakeStart(sessionPlayer, result.uuid, session.username)
                 if (result.verified) {
-                    address.address?.hostAddress?.let(verifiedIps::add)
+                    verifiedPlayers += session.username.lowercase()
                     log.info("Premium session fully verified: ${session.username} (${result.uuid})")
                 } else {
                     log.info("Session unverifiable for ${session.username} - treating as cracked")
@@ -287,7 +281,6 @@ internal class Session(
     private fun verifySession(
         session: PendingSession,
         sharedSecret: SecretKey,
-        address: InetSocketAddress,
         player: Player,
     ): VerificationResult {
         log.debug("Verify token matched for ${session.username} - calling hasJoined")
@@ -336,10 +329,7 @@ internal class Session(
         val realUuid = UUID.fromString(uuidStr)
         log.info("Session VERIFIED for ${session.username} - Mojang UUID: $realUuid")
 
-        val ip = address.address?.hostAddress
-        if (ip != null) {
-            verifiedUUIDs[ip] = realUuid
-        }
+        verifiedUUIDs[session.username.lowercase()] = realUuid
 
         val body = response.body()
         try {
@@ -356,16 +346,11 @@ internal class Session(
                     if (propName == "textures") {
                         val value = prop.get("value").asString
                         val signature = prop.get("signature").asString
-                        val ip = address.address?.hostAddress
                         log.debug(
-                            "Textures property extracted for ${session.username}: value.length=${value.length}, signature.length=${signature.length}, ip=$ip",
+                            "Textures property extracted for ${session.username}: value.length=${value.length}, signature.length=${signature.length}",
                         )
-                        if (ip != null) {
-                            verifiedSkins[ip] = SkinData(value, signature)
-                            log.debug("Skin data stored for ${session.username} under ip=$ip, map size=${verifiedSkins.size}")
-                        } else {
-                            log.warning("Could not store skin data for ${session.username}: ip is null")
-                        }
+                        verifiedSkins[session.username.lowercase()] = SkinData(value, signature)
+                        log.debug("Skin data stored for ${session.username}, map size=${verifiedSkins.size}")
                         break
                     }
                 }

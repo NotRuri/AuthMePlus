@@ -3,7 +3,7 @@ package one.ruri.authmeplus.protocol
 import com.comphenix.protocol.ProtocolLibrary
 import one.ruri.authmeplus.Logger
 import org.bukkit.plugin.java.JavaPlugin
-import java.net.InetSocketAddress
+import java.util.UUID
 
 class Protocol(
     plugin: JavaPlugin,
@@ -12,11 +12,11 @@ class Protocol(
 ) {
     private val sessionHandler = Session(plugin, log, crackedPlayers)
 
-    fun isVerified(address: InetSocketAddress?): Boolean = sessionHandler.isVerified(address)
+    fun isVerified(name: String): Boolean = sessionHandler.isVerified(name)
 
-    fun getVerifiedUUID(address: InetSocketAddress?): java.util.UUID? = sessionHandler.getVerifiedUUID(address)
+    fun getVerifiedUUID(name: String): UUID? = sessionHandler.getVerifiedUUID(name)
 
-    fun getSkinData(address: InetSocketAddress?): SkinData? = sessionHandler.getSkinData(address)
+    fun getSkinData(name: String): SkinData? = sessionHandler.getSkinData(name)
 
     fun updateCrackedPlayers(crackedPlayers: Set<String>) {
         sessionHandler.updateCrackedPlayers(crackedPlayers)

@@ -30,7 +30,7 @@ class PlayerJoin(
 
         if (shouldSkip(player, name)) return
 
-        if (protocolLib.isVerified(player.address)) {
+        if (protocolLib.isVerified(name)) {
             handleVerifiedPlayer(player, name)
             return
         }
@@ -115,12 +115,10 @@ class PlayerJoin(
 
         val playerIp = player.address?.address?.hostAddress
         log.debug(
-            "Skin restoration check for $name: ip=$playerIp, isVerified=${protocolLib.isVerified(
-                player.address,
-            )}",
+            "Skin restoration check for $name: ip=$playerIp, isVerified=${protocolLib.isVerified(name)}",
         )
 
-        val skinData = protocolLib.getSkinData(player.address)
+        val skinData = protocolLib.getSkinData(name)
         if (skinData == null) {
             log.warning(
                 "No skin data found for $name (ip=$playerIp) — verifiedSkins may not have been populated during handshake",

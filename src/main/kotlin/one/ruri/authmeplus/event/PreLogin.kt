@@ -7,7 +7,6 @@ import org.bukkit.Bukkit
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent
-import java.net.InetSocketAddress
 
 class PreLogin(
     private val protocolLib: Protocol,
@@ -15,15 +14,14 @@ class PreLogin(
 ) : Listener {
     @EventHandler
     fun onAsyncPlayerPreLogin(event: AsyncPlayerPreLoginEvent) {
-        val addr = InetSocketAddress(event.address, 0)
-        val uuid = protocolLib.getVerifiedUUID(addr) ?: return
         val name = event.name
+        val uuid = protocolLib.getVerifiedUUID(name) ?: return
 
         log.debug("Overriding profile for $name with real UUID: $uuid")
 
         val profile = Bukkit.createProfile(uuid, name)
 
-        val skinData = protocolLib.getSkinData(addr)
+        val skinData = protocolLib.getSkinData(name)
         if (skinData != null) {
             profile.setProperty(ProfileProperty("textures", skinData.value, skinData.signature))
         }
