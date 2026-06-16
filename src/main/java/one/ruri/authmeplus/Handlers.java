@@ -3,6 +3,7 @@ package one.ruri.authmeplus;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -20,7 +21,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class Handlers implements Listener, CommandExecutor, TabCompleter {
 
     private final JavaPlugin plugin;
-    private final FileConfiguration cfg;
+    private FileConfiguration cfg;
     private final Bridge authMe;
 
     public Handlers(JavaPlugin plugin, FileConfiguration cfg, Bridge authMe) {
@@ -134,20 +135,23 @@ public final class Handlers implements Listener, CommandExecutor, TabCompleter {
         String label,
         String[] args
     ) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage(
-                Utils.getMessage(
-                    this.cfg,
-                    "messages.not_player",
-                    "This command is only for players."
-                )
-            );
+        if (args.length == 0) {
+            List<String> lines = this.cfg.getStringList("messages.help");
+            if (lines != null) {
+                for (String line : lines) {
+                    sender.sendMessage(
+                        ChatColor.translateAlternateColorCodes('&', line)
+                    );
+                }
+            }
             return true;
         }
 
-        Player p = (Player) sender;
-        if (!this.cfg.getBoolean("settings.enableplugin", true)) {
-            p.sendMessage(
+        if (
+            !args[0].equalsIgnoreCase("reload") &&
+            !this.cfg.getBoolean("settings.enableplugin", true)
+        ) {
+            sender.sendMessage(
                 Utils.getMessage(
                     this.cfg,
                     "messages.plugin_disabled",
@@ -157,25 +161,25 @@ public final class Handlers implements Listener, CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (args.length == 0 || !args[0].equalsIgnoreCase("about")) {
-            p.sendMessage(
-                Utils.getMessage(
-                    this.cfg,
-                    "messages.help_header",
-                    "&6=== AuthMePlus ==="
-                )
-            );
-            p.sendMessage(
-                Utils.getMessage(
-                    this.cfg,
-                    "messages.help_about",
-                    "&e/amp about &f- How the plugin works and GDPR compliance."
-                )
-            );
-            return true;
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        switch (sub) {
+            case "reload":
+                return handleReload(sender);
+            case "version":
+                return handleVersion(sender);
+            case "about":
+                return handleAbout(sender);
+            default:
+                List<String> lines = this.cfg.getStringList("messages.help");
+                if (lines != null) {
+                    for (String line : lines) {
+                        sender.sendMessage(
+                            ChatColor.translateAlternateColorCodes('&', line)
+                        );
+                    }
+                }
+                return true;
         }
-
-        return handleAbout(p);
     }
 
     @Override
@@ -186,24 +190,82 @@ public final class Handlers implements Listener, CommandExecutor, TabCompleter {
         String[] args
     ) {
         List<String> completions = new ArrayList<>();
-        if (!(sender instanceof Player)) return completions;
-        if (args.length == 1 && "about".startsWith(args[0].toLowerCase())) {
-            completions.add("about");
+        if (args.length == 1) {
+            String partial = args[0].toLowerCase(Locale.ROOT);
+            for (String cmd : new String[] { "reload", "version", "about" }) {
+                if (cmd.startsWith(partial)) completions.add(cmd);
+            }
         }
         return completions;
     }
 
-    private boolean handleAbout(Player p) {
+    private boolean handleReload(CommandSender sender) {
+        if (!sender.hasPermission("amp.reload") && !sender.isOp()) {
+            sender.sendMessage(
+                ChatColor.RED +
+                    "You do not have permission to use this command."
+            );
+            return true;
+        }
+        try {
+            this.plugin.reloadConfig();
+            this.cfg = this.plugin.getConfig();
+            sender.sendMessage(
+                Utils.getMessage(
+                    this.cfg,
+                    "messages.reload_success",
+                    "&aConfiguration reloaded."
+                )
+            );
+            this.plugin
+                .getLogger()
+                .info("Configuration reloaded by " + sender.getName());
+        } catch (Exception e) {
+            sender.sendMessage(
+                Utils.getMessage(
+                    this.cfg,
+                    "messages.reload_fail",
+                    "&cFailed to reload config."
+                )
+            );
+            this.plugin
+                .getLogger()
+                .warning("Failed to reload config: " + e.getMessage());
+        }
+        return true;
+    }
+
+    private boolean handleVersion(CommandSender sender) {
+        String version = this.plugin.getDescription().getVersion();
+        List<String> lines = this.cfg.getStringList("messages.version");
+        if (lines == null || lines.isEmpty()) {
+            sender.sendMessage(ChatColor.GOLD + "AuthMePlus v" + version);
+            return true;
+        }
+        for (String line : lines) {
+            sender.sendMessage(
+                ChatColor.translateAlternateColorCodes(
+                    '&',
+                    line.replace("%version%", version)
+                )
+            );
+        }
+        return true;
+    }
+
+    private boolean handleAbout(CommandSender sender) {
         List<String> lines = this.cfg.getStringList("messages.about");
         if (lines == null || lines.isEmpty()) {
-            p.sendMessage(
+            sender.sendMessage(
                 ChatColor.RED + "No plugin information has been configured."
             );
             return true;
         }
 
         for (String line : lines) {
-            p.sendMessage(ChatColor.translateAlternateColorCodes('&', line));
+            sender.sendMessage(
+                ChatColor.translateAlternateColorCodes('&', line)
+            );
         }
         return true;
     }

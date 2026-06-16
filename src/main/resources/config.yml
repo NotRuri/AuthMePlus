@@ -4,20 +4,46 @@ settings:
   allow_local_ips: true
 
 messages:
-  # General errors
+  # General
   plugin_disabled: "&cThe premium login system is currently disabled."
-  unknown_command: "&eUnknown command. Use /amp to see the list."
-  not_player: "&cThis command is only available to players."
+  reload_success: "&aConfiguration reloaded successfully."
+  reload_fail: "&cFailed to reload configuration."
 
-  # /amp (Help)
-  help_header: "&6=== AuthMePlus ==="
-  help_about: "&e/amp about &f- How the plugin works and GDPR compliance."
+  # Help
+  help:
+    - "&6&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    - "&6&lAuthMePlus Commands"
+    - "&6&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    - ""
+    - "&e/amp reload &7- &fReload plugin configuration &8(op)"
+    - "&e/amp version &7- &fShow plugin version and information"
+    - "&e/amp about &7- &fHow the plugin works"
+    - ""
+    - "&6&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-  # /amp about (GDPR)
+  # /amp about
   about:
-    - "&eThis plugin allows automatic login without a password if"
-    - "&eyou play with an official Minecraft account (Premium)."
+    - "&6&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    - "&6&lAbout AuthMePlus"
+    - "&6&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    - ""
+    - "&fThis plugin automatically logs you in if you"
+    - "&fjoin with a premium (paid) Minecraft account."
+    - ""
+    - "&6&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  # /amp version
+  version:
+    - "&6&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    - "&6&lAuthMePlus &7v%version%"
+    - "&6&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    - "&7A premium auto-login plugin for Paper & Folia."
+    - ""
+    - "&fAuthor: &eRuri"
+    - "&fSource: &bhttps://github.com/notruri/authmeplus"
+    - ""
+    - "&6&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
   # Login events
-  auto_login_premium: "&aYour premium account has been verified! Automatic login enabled."
-  kick_not_premium: "&cThis account is not a valid premium (Mojang) account.\n&cIf you own this account, please use the official Minecraft launcher.\n&cCracked accounts are not allowed on this server."
+  auto_login_premium: "&a✦ &fYour premium account has been verified! &a✦"
+  kick_not_premium: "&c&lAccess Denied\n\n&cThis account is not a valid premium (Mojang) account.\n&cIf you own this account, please use the official Minecraft launcher.\n&cCracked accounts are not allowed on this server."
