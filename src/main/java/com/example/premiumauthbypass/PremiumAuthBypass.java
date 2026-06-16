@@ -39,7 +39,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
     private FileConfiguration linkedConfig;
     private FileConfiguration cfg;
     
-    // Clé statique de 16 octets pour AES-128
+    // Static 16-byte key for AES-128
     private static final byte[] KEY_BYTES = "Pr3m1umByp4ssK3y".getBytes(StandardCharsets.UTF_8);
 
     @Override
@@ -125,7 +125,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
                     this.mForceLogin = force;
                     getLogger().info("Found AuthMe API via fr.xephi.authme.AuthMe.getInstance().getAPI()");
                 } catch (Throwable throwable2) {
-                    // AuthMe non trouvé
+                    // AuthMe not found
                 }
             }
         }
@@ -155,7 +155,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
         return ChatColor.translateAlternateColorCodes('&', this.cfg.getString(path, def));
     }
 
-    // --- Sécurité Anti-Proxy (Velocity/BungeeCord mal configurés) ---
+    // --- Anti-proxy security (misconfigured Velocity/BungeeCord) ---
     private boolean isIpSafe(InetAddress address) {
         if (address == null) return false;
         
@@ -164,7 +164,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
             return false;
         }
         
-        // Interdit les IP réseau local (192.168.x.x, 10.x.x.x, 172.x.x.x) souvent utilisées par les nœuds Pterodactyl/Docker
+        // Block private network IPs (192.168.x.x, 10.x.x.x, 172.x.x.x) often used by Pterodactyl/Docker nodes
         if (address.isSiteLocalAddress() && !this.cfg.getBoolean("settings.allow_local_ips", false)) {
             return false;
         }
@@ -173,7 +173,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
     }
     // ----------------------------------------------------------------
 
-    // --- Système de Chiffrement AES ---
+    // --- AES encryption system ---
     private String encryptIp(String ip) {
         try {
             Key key = new SecretKeySpec(KEY_BYTES, "AES");
@@ -248,7 +248,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
         if (isIpAuthorized) {
             if (!isAuthenticated(player)) {
                 forceLogin(player);
-                player.sendMessage(getMessage("messages.auto_login_success", "&aConnexion automatique détectée !"));
+                player.sendMessage(getMessage("messages.auto_login_success", "&aAutomatic login detected!"));
                 getLogger().info("Auto-logged player: " + name);
             }
             return;
@@ -262,9 +262,9 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
                     if (isPremium) {
                         player.getScheduler().run(this, scheduledTask -> {
                             if (player.isOnline()) {
-                                player.sendMessage(getMessage("messages.prompt_ip", "&eVoulez-vous activer le bypass de connexion pour cette IP ?"));
-                                player.sendMessage(getMessage("messages.prompt_accept_howto", "&eFaites &b/premium accept&e pour autoriser cette IP."));
-                                player.sendMessage(getMessage("messages.prompt_revoke_howto", "&eFaites &b/premium revoke&e pour retirer l'autorisation."));
+                                player.sendMessage(getMessage("messages.prompt_ip", "&eWould you like to enable login bypass for this IP?"));
+                                player.sendMessage(getMessage("messages.prompt_accept_howto", "&eUse &b/premium accept&e to allow this IP."));
+                                player.sendMessage(getMessage("messages.prompt_revoke_howto", "&eUse &b/premium revoke&e to remove the authorization."));
                                 this.linkedConfig.set(lower + ".prompted", true);
                                 saveLinkedConfigAsync();
                             }
@@ -285,7 +285,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
         Player p = (Player) sender;
         
         if (!this.cfg.getBoolean("settings.enableplugin", true)) {
-            p.sendMessage(getMessage("messages.plugin_disabled", "&cPlugin désactivé."));
+            p.sendMessage(getMessage("messages.plugin_disabled", "&cPlugin disabled."));
             return true;
         }
 
@@ -295,7 +295,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
         String currentIp = (pAddress != null) ? pAddress.getHostAddress() : null;
 
         if (args.length == 0) {
-            p.sendMessage(getMessage("messages.help_header", "&6=== Commandes Premium ==="));
+            p.sendMessage(getMessage("messages.help_header", "&6=== Premium Commands ==="));
             p.sendMessage(getMessage("messages.help_accept", "&e/premium accept"));
             p.sendMessage(getMessage("messages.help_revoke", "&e/premium revoke"));
             p.sendMessage(getMessage("messages.help_list", "&e/premium list"));
@@ -314,7 +314,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
             case "about":
                 return handleAbout(p);
             default:
-                p.sendMessage(getMessage("messages.unknown_command", "&eCommande inconnue."));
+                p.sendMessage(getMessage("messages.unknown_command", "&eUnknown command."));
                 return true;
         }
     }
@@ -344,31 +344,31 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
 
     private boolean handleAccept(Player p, String lower, InetAddress pAddress, String currentIp) {
         if (!isAuthenticated(p)) {
-            p.sendMessage(getMessage("messages.not_authenticated", "&cVous devez être connecté pour faire cela."));
+            p.sendMessage(getMessage("messages.not_authenticated", "&cYou must be logged in to do this."));
             return true;
         }
 
         if (pAddress == null || currentIp == null) {
-            p.sendMessage(getMessage("messages.no_ip", "&cImpossible de récupérer votre adresse IP."));
+            p.sendMessage(getMessage("messages.no_ip", "&cUnable to retrieve your IP address."));
             return true;
         }
         
         // Block storing Velocity's IP instead of the player's IP
         if (!isIpSafe(pAddress)) {
-            p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&4&lErreur de sécurité &c: Le serveur n'est pas configuré correctement avec Velocity."));
-            p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cPar sécurité, le bypass est désactivé. Informez l'administrateur de configurer le forwarding d'IP."));
-            getLogger().warning("[Sécurité] Tentative de bypass empêchée pour " + p.getName() + " car l'IP détectée est une IP locale/proxy (" + currentIp + ").");
+            p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&4&lSecurity error &c: The server is not configured correctly with Velocity."));
+            p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cFor safety, bypass is disabled. Ask an administrator to configure IP forwarding."));
+            getLogger().warning("[Security] Bypass attempt blocked for " + p.getName() + " because the detected IP is a local/proxy IP (" + currentIp + ").");
             return true;
         }
 
-        p.sendMessage(getMessage("messages.mojang_check", "&eVérification de votre compte..."));
+        p.sendMessage(getMessage("messages.mojang_check", "&eChecking your account..."));
 
         Bukkit.getAsyncScheduler().runNow(this, task -> {
             boolean isPremium = checkUsernameIsPremium(p.getName());
             
             p.getScheduler().run(this, scheduledTask -> {
                 if (!isPremium) {
-                    p.sendMessage(getMessage("messages.not_premium", "&cCe compte n'est pas Premium."));
+                    p.sendMessage(getMessage("messages.not_premium", "&cThis account is not Premium."));
                     return;
                 }
 
@@ -389,10 +389,10 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
                     this.linkedConfig.set(lower + ".prompted", true);
                     
                     saveLinkedConfigAsync(); 
-                    p.sendMessage(getMessage("messages.premium_link_success", "&aVotre compte premium est désormais lié !"));
+                    p.sendMessage(getMessage("messages.premium_link_success", "&aYour premium account is now linked!"));
                     getLogger().info("Linked " + p.getName() + " to IP (encrypted)");
                 } else {
-                    p.sendMessage(getMessage("messages.already_linked", "&aCette IP est déjà autorisée."));
+                    p.sendMessage(getMessage("messages.already_linked", "&aThis IP is already allowed."));
                 }
             }, null);
         });
@@ -405,7 +405,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
 
         if (args.length == 1) {
             if (currentIp == null) {
-                p.sendMessage(getMessage("messages.no_ip", "&cImpossible de récupérer l'IP."));
+                p.sendMessage(getMessage("messages.no_ip", "&cUnable to retrieve the IP."));
                 return true;
             }
             
@@ -422,9 +422,9 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
                 this.linkedConfig.set(lower + ".ips", encryptedIps);
                 if (encryptedIps.isEmpty()) this.linkedConfig.set(lower + ".prompted", false);
                 saveLinkedConfigAsync();
-                p.sendMessage(getMessage("messages.premium_revoke", "&cLe bypass a été retiré."));
+                p.sendMessage(getMessage("messages.premium_revoke", "&cBypass has been removed."));
             } else {
-                p.sendMessage(getMessage("messages.ip_not_in_list", "&eCette adresse IP n'est pas dans la liste."));
+                p.sendMessage(getMessage("messages.ip_not_in_list", "&eThis IP address is not in the list."));
             }
             return true;
         }
@@ -434,7 +434,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
             this.linkedConfig.set(lower + ".ips", new ArrayList<>());
             this.linkedConfig.set(lower + ".prompted", false);
             saveLinkedConfigAsync();
-            p.sendMessage(getMessage("messages.premium_revoke_all", "&cToutes les adresses retirées."));
+            p.sendMessage(getMessage("messages.premium_revoke_all", "&cAll addresses have been removed."));
             return true;
         }
         
@@ -452,26 +452,26 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
             this.linkedConfig.set(lower + ".ips", encryptedIps);
             if (encryptedIps.isEmpty()) this.linkedConfig.set(lower + ".prompted", false);
             saveLinkedConfigAsync();
-            p.sendMessage(getMessage("messages.premium_revoke_specific", "&cL'IP a été retirée."));
+            p.sendMessage(getMessage("messages.premium_revoke_specific", "&cThe IP has been removed."));
         } else {
-            p.sendMessage(getMessage("messages.ip_not_in_list", "&eL'adresse IP n'est pas dans la liste."));
+            p.sendMessage(getMessage("messages.ip_not_in_list", "&eThe IP address is not in the list."));
         }
         return true;
     }
 
     private boolean handleList(Player p, String lower, String[] args) {
         if (args.length == 1) {
-            p.sendMessage(getMessage("messages.list_confirm", "&eÊtes-vous sûr de vouloir lister vos IPs ?"));
-            p.sendMessage(getMessage("messages.list_howto", "&eFaites /premium list sure"));
+            p.sendMessage(getMessage("messages.list_confirm", "&eAre you sure you want to list your IPs?"));
+            p.sendMessage(getMessage("messages.list_howto", "&eUse /premium list sure"));
             return true;
         }
         
         if (args.length == 2 && args[1].equalsIgnoreCase("sure")) {
             List<String> encryptedIps = this.linkedConfig.getStringList(lower + ".ips");
             if (encryptedIps == null || encryptedIps.isEmpty()) {
-                p.sendMessage(getMessage("messages.list_empty", "&eAucune IP autorisée."));
+                p.sendMessage(getMessage("messages.list_empty", "&eNo allowed IPs."));
             } else {
-                p.sendMessage(getMessage("messages.list_header", "&aIPs liées :"));
+                p.sendMessage(getMessage("messages.list_header", "&aLinked IPs:"));
                 for (String encIp : encryptedIps) {
                     String decrypted = decryptIp(encIp);
                     String format = getMessage("messages.list_format", "&b - %ip%");
@@ -479,7 +479,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
                 }
             }
         } else {
-            p.sendMessage(getMessage("messages.unknown_command", "&eCommande inconnue."));
+            p.sendMessage(getMessage("messages.unknown_command", "&eUnknown command."));
         }
         return true;
     }
@@ -487,7 +487,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
     private boolean handleAbout(Player p) {
         List<String> lines = this.cfg.getStringList("messages.about");
         if (lines == null || lines.isEmpty()) {
-            p.sendMessage(ChatColor.RED + "Aucune information à propos du plugin n'a été configurée.");
+            p.sendMessage(ChatColor.RED + "No plugin information has been configured.");
             return true;
         }
         
