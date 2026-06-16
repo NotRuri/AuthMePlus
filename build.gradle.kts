@@ -28,11 +28,15 @@ repositories {
         name = "papermc-repo"
         url = uri("https://repo.papermc.io/repository/maven-public/")
     }
+    maven {
+        name = "codemc-repo"
+        url = uri("https://repo.codemc.io/repository/maven-public/")
+    }
 }
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.1.2.build.70-stable")
-    compileOnly(files("libs/AuthMe-5.7.0-FORK-Universal.jar"))
+    compileOnly("fr.xephi:authme:5.7.0")
     implementation(kotlin("stdlib"))
 }
 
