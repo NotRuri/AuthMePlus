@@ -14,8 +14,8 @@ It is a fork of [PremiumAuthBypass](https://github.com/akanoka/premiumauthbypass
 
 | Command               | Description                             |
 | --------------------- | --------------------------------------- |
-| `/premium accept`     | Link your current IP to your account    |
-| `/premium revoke`     | Remove your current IP                  |
-| `/premium revoke all` | Remove all linked IPs                   |
-| `/premium list`       | Show linked IPs (confirmation required) |
-| `/premium about`      | Show plugin info                        |
+| `/amp accept`         | Link your current IP to your account    |
+| `/amp revoke`         | Remove your current IP                  |
+| `/amp revoke all`     | Remove all linked IPs                   |
+| `/amp list`           | Show linked IPs (confirmation required) |
+| `/amp about`          | Show plugin info                        |

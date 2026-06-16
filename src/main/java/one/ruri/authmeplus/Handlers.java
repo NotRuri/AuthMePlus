@@ -60,9 +60,9 @@ public final class Handlers
             .getServer()
             .getPluginManager()
             .registerEvents(this, this.plugin);
-        if (this.plugin.getCommand("premium") != null) {
-            this.plugin.getCommand("premium").setExecutor(this);
-            this.plugin.getCommand("premium").setTabCompleter(this);
+        if (this.plugin.getCommand("amp") != null) {
+            this.plugin.getCommand("amp").setExecutor(this);
+            this.plugin.getCommand("amp").setTabCompleter(this);
         }
     }
 
@@ -166,14 +166,14 @@ public final class Handlers
                                         Utils.getMessage(
                                             this.cfg,
                                             "messages.prompt_accept_howto",
-                                            "&eUse &b/premium accept&e to allow this IP."
+                                            "&eUse &b/amp accept&e to allow this IP."
                                         )
                                     );
                                     player.sendMessage(
                                         Utils.getMessage(
                                             this.cfg,
                                             "messages.prompt_revoke_howto",
-                                            "&eUse &b/premium revoke&e to remove the authorization."
+                                            "&eUse &b/amp revoke&e to remove the authorization."
                                         )
                                     );
                                     this.linkedConfig.set(
@@ -241,28 +241,28 @@ public final class Handlers
                 Utils.getMessage(
                     this.cfg,
                     "messages.help_accept",
-                    "&e/premium accept"
+                    "&e/amp accept"
                 )
             );
             p.sendMessage(
                 Utils.getMessage(
                     this.cfg,
                     "messages.help_revoke",
-                    "&e/premium revoke"
+                    "&e/amp revoke"
                 )
             );
             p.sendMessage(
                 Utils.getMessage(
                     this.cfg,
                     "messages.help_list",
-                    "&e/premium list"
+                    "&e/amp list"
                 )
             );
             p.sendMessage(
                 Utils.getMessage(
                     this.cfg,
                     "messages.help_about",
-                    "&e/premium about"
+                    "&e/amp about"
                 )
             );
             return true;
@@ -569,7 +569,7 @@ public final class Handlers
                 Utils.getMessage(
                     this.cfg,
                     "messages.list_howto",
-                    "&eUse /premium list sure"
+                    "&eUse /amp list sure"
                 )
             );
             return true;

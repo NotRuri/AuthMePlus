@@ -6,4 +6,4 @@ folia-supported: true
 depend:
   - AuthMe
 commands:
-  premium:
+  amp:
