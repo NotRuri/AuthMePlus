@@ -37,7 +37,7 @@ class Main : JavaPlugin() {
             "AuthMePlus enabled (accept_cracked=${cfg.getBoolean(
                 "settings.accept_cracked",
                 false,
-            )}, enabled=${cfg.getBoolean("settings.enableplugin", true)})",
+            )}, enabled=${cfg.getBoolean("settings.enabled", true)})",
         )
     }
 

@@ -42,7 +42,7 @@ class PlayerJoin(
         player: Player,
         name: String,
     ): Boolean {
-        if (!cfg.getBoolean("settings.enableplugin", true)) {
+        if (!cfg.getBoolean("settings.enabled", true)) {
             log.debug("Plugin disabled via config - skipping auth handling for $name")
             return true
         }

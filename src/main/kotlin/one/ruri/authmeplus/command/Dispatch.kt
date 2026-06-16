@@ -16,7 +16,7 @@ class Dispatch(
         sender: CommandSender,
         args: Array<String>,
     ): Boolean {
-        if (!args[0].equals("reload", ignoreCase = true) && !cfg.getBoolean("settings.enableplugin", true)) {
+        if (!args[0].equals("reload", ignoreCase = true) && !cfg.getBoolean("settings.enabled", true)) {
             sender.sendMessage(Utils.getMessage(cfg, "messages.plugin_disabled", "&cPlugin disabled."))
             return true
         }

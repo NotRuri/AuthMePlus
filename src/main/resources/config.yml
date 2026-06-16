@@ -1,5 +1,5 @@
 settings:
-  enableplugin: true
+  enabled: true
   accept_cracked: false
   restore_skins: true
   debug: false
