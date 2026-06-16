@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm") version "2.4.0"
     id("com.diffplug.spotless") version "8.6.0"
+    id("com.modrinth.minotaur") version "2.+"
 }
 
 group = "one.ruri"
@@ -63,5 +64,19 @@ tasks.jar {
             "Implementation-Title" to project.name,
             "Implementation-Version" to project.version
         )
+    }
+}
+
+modrinth {
+    token.set(System.getenv("MODRINTH_TOKEN"))
+    projectId.set("pp17mZ16")
+    versionNumber.set(project.version.toString())
+    versionType.set("release")
+    uploadFile.set(tasks.jar)
+    gameVersions.addAll("1.21.4")
+    loaders.addAll("paper", "spigot", "bukkit")
+    changelog.set(System.getenv("CHANGELOG"))
+    dependencies {
+        required.project("authmereloaded")
     }
 }
