@@ -50,7 +50,7 @@ class Handlers(
 
             when (premiumResult) {
                 1 -> {
-                    player.scheduler.run(plugin, { scheduledTask ->
+                    player.scheduler.run(plugin, { _ ->
                         if (!player.isOnline) return@run
 
                         if (!authMe.isRegistered(name)) {
@@ -75,7 +75,7 @@ class Handlers(
 
                 0 -> {
                     if (!cfg.getBoolean("settings.accept_cracked", false)) {
-                        player.scheduler.run(plugin, { scheduledTask ->
+                        player.scheduler.run(plugin, { _ ->
                             if (player.isOnline) {
                                 player.kick(
                                     Utils.getMessage(cfg, "messages.kick_not_premium", "&cNot a premium account."),

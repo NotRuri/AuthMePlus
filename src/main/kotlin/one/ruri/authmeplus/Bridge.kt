@@ -26,7 +26,7 @@ class Bridge(
             logger.info("Found AuthMe API: fr.xephi.authme.api.v3.AuthMeApi")
             tryFindOptionalMethods(c, false)
             return true
-        } catch (throwable: Throwable) {
+        } catch (_: Throwable) {
             try {
                 val c = Class.forName("fr.xephi.authme.api.API")
                 val getInstance = c.getMethod("getInstance")
@@ -39,7 +39,7 @@ class Bridge(
                 logger.info("Found AuthMe API: fr.xephi.authme.api.API")
                 tryFindOptionalMethods(c, false)
                 return true
-            } catch (throwable1: Throwable) {
+            } catch (_: Throwable) {
                 try {
                     val main = Class.forName("fr.xephi.authme.AuthMe")
                     val getInstance = main.getMethod("getInstance")
@@ -55,7 +55,7 @@ class Bridge(
                     logger.info("Found AuthMe API via fr.xephi.authme.AuthMe.getInstance().getAPI()")
                     tryFindOptionalMethods(apiClass, true)
                     return true
-                } catch (throwable2: Throwable) {
+                } catch (_: Throwable) {
                     return false
                 }
             }
