@@ -1,5 +1,5 @@
 name: AuthMePlus
-version: "1.3.2"
+version: "${version}"
 main: one.ruri.authmeplus.Main
 api-version: "26.1"
 folia-supported: true

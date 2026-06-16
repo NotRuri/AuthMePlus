@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "one.ruri"
-version = "1.3.2"
+version = "1.3.3"
 
 java {
     toolchain {
@@ -50,6 +50,13 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
+}
+
+tasks.processResources {
+    filteringCharset = "UTF-8"
+    filesMatching("plugin.yml") {
+        expand(project.properties)
+    }
 }
 
 tasks.jar {
