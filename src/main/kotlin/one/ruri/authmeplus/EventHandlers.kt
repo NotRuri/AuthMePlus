@@ -1,5 +1,6 @@
 package one.ruri.authmeplus
 
+import com.destroystokyo.paper.profile.ProfileProperty
 import fr.xephi.authme.api.v3.AuthMeApi
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -82,6 +83,36 @@ class EventHandlers(
                     plugin.logger.info("Auto-logged ProtocolLib-verified player: $name")
                 } else {
                     plugin.logger.fine("$name already authenticated (ProtocolLib path) - no action needed")
+                }
+
+                if (cfg.getBoolean("settings.restore_skins", true)) {
+                    val playerIp = player.address?.address?.hostAddress
+                    plugin.logger.info(
+                        "Skin restoration check for $name: ip=$playerIp, protocolLib.isVerified=${protocolLib.isVerified(player.address)}",
+                    )
+                    val skinData = protocolLib.getSkinData(player.address)
+                    if (skinData != null) {
+                        plugin.logger.info(
+                            "Skin data found for $name: value.length=${skinData.value.length}, signature.length=${skinData.signature.length}",
+                        )
+                        try {
+                            val profile = player.playerProfile.clone()
+                            val beforeProps = profile.properties.size
+                            profile.setProperty(ProfileProperty("textures", skinData.value, skinData.signature))
+                            player.playerProfile = profile
+                            plugin.logger.info(
+                                "Profile set for $name: had $beforeProps properties before, textures property added, playerProfile updated",
+                            )
+                        } catch (e: Exception) {
+                            plugin.logger.warning("Failed to apply skin to profile for $name: ${e.message}")
+                        }
+                    } else {
+                        plugin.logger.warning(
+                            "No skin data found for $name (ip=$playerIp) — verifiedSkins may not have been populated during handshake",
+                        )
+                    }
+                } else {
+                    plugin.logger.fine("Skin restoration disabled by config for $name")
                 }
             }, null)
             return

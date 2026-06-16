@@ -5,6 +5,7 @@ import com.comphenix.protocol.ProtocolLibrary
 import com.comphenix.protocol.events.ListenerPriority
 import com.comphenix.protocol.events.PacketAdapter
 import com.comphenix.protocol.events.PacketEvent
+import com.google.gson.JsonParser
 import one.ruri.authmeplus.AccountType
 import one.ruri.authmeplus.Utils
 import org.bukkit.Bukkit
@@ -24,12 +25,18 @@ import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
 
+data class SkinData(
+    val value: String,
+    val signature: String,
+)
+
 internal class Session(
     private val plugin: JavaPlugin,
 ) {
     private val protocolManager = ProtocolLibrary.getProtocolManager()
     private val verifiedIps = ConcurrentHashMap.newKeySet<String>()
     private val pendingSessions = ConcurrentHashMap<InetSocketAddress, PendingSession>()
+    private val verifiedSkins = ConcurrentHashMap<String, SkinData>()
     private val httpClient =
         HttpClient
             .newBuilder()
@@ -53,6 +60,11 @@ internal class Session(
 
     fun isVerified(address: InetSocketAddress?): Boolean = address?.address?.hostAddress in verifiedIps
 
+    fun getSkinData(address: InetSocketAddress?): SkinData? {
+        val ip = address?.address?.hostAddress ?: return null
+        return verifiedSkins[ip]
+    }
+
     fun register() {
         plugin.logger.info("Registering ProtocolLib async packet listeners...")
 
@@ -70,6 +82,7 @@ internal class Session(
     fun unregister() {
         protocolManager.removePacketListeners(plugin)
         verifiedIps.clear()
+        verifiedSkins.clear()
         pendingSessions.clear()
         plugin.logger.info("ProtocolLib listeners unregistered")
     }
@@ -283,6 +296,40 @@ internal class Session(
 
         val realUuid = UUID.fromString(uuidStr)
         plugin.logger.info("Session VERIFIED for ${session.username} - Mojang UUID: $realUuid")
+
+        val body = response.body()
+        try {
+            val root = JsonParser.parseString(body).asJsonObject
+            val properties = root.getAsJsonArray("properties")
+            if (properties == null) {
+                plugin.logger.warning("hasJoined response for ${session.username} has no properties array (no skin data available)")
+            } else {
+                plugin.logger.info("hasJoined response for ${session.username} has ${properties.size()} properties")
+                for (element in properties) {
+                    val prop = element.asJsonObject
+                    val propName = prop.get("name").asString
+                    plugin.logger.info("Skin property found: $propName")
+                    if (propName == "textures") {
+                        val value = prop.get("value").asString
+                        val signature = prop.get("signature").asString
+                        val ip = address.address?.hostAddress
+                        plugin.logger.info(
+                            "Textures property extracted for ${session.username}: value.length=${value.length}, signature.length=${signature.length}, ip=$ip",
+                        )
+                        if (ip != null) {
+                            verifiedSkins[ip] = SkinData(value, signature)
+                            plugin.logger.info("Skin data stored for ${session.username} under ip=$ip, map size=${verifiedSkins.size}")
+                        } else {
+                            plugin.logger.warning("Could not store skin data for ${session.username}: ip is null")
+                        }
+                        break
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            plugin.logger.warning("Failed to parse skin data from hasJoined response: ${e.message}")
+        }
+
         return realUuid
     }
 }

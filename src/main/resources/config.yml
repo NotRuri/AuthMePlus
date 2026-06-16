@@ -1,6 +1,7 @@
 settings:
   enableplugin: true
   accept_cracked: false
+  restore_skins: true
 
 messages:
   # General

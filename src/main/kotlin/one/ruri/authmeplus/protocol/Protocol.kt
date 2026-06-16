@@ -11,6 +11,8 @@ class Protocol(
 
     fun isVerified(address: InetSocketAddress?): Boolean = sessionHandler.isVerified(address)
 
+    fun getSkinData(address: InetSocketAddress?): SkinData? = sessionHandler.getSkinData(address)
+
     fun register() {
         sessionHandler.register()
     }
