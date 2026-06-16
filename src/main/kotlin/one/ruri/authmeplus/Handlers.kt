@@ -1,5 +1,6 @@
 package one.ruri.authmeplus
 
+import fr.xephi.authme.api.v3.AuthMeApi
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
@@ -18,10 +19,11 @@ import java.util.Locale
 class Handlers(
     private val plugin: JavaPlugin,
     private var cfg: FileConfiguration,
-    private val authMe: Bridge,
 ) : Listener,
     CommandExecutor,
     TabCompleter {
+    private val api = AuthMeApi.getInstance()
+
     fun register() {
         plugin.server.pluginManager.registerEvents(this, plugin)
         plugin.getCommand("amp")?.let {
@@ -43,7 +45,7 @@ class Handlers(
 
         if (pAddress == null || !Utils.isIpSafe(pAddress, cfg)) return
 
-        if (authMe.isAuthenticated(player)) return
+        if (api.isAuthenticated(player)) return
 
         Bukkit.getAsyncScheduler().runNow(plugin) {
             val premiumResult = Utils.checkUsernameIsPremium(plugin.logger, name)
@@ -53,18 +55,18 @@ class Handlers(
                     player.scheduler.run(plugin, { _ ->
                         if (!player.isOnline) return@run
 
-                        if (!authMe.isRegistered(name)) {
+                        if (!api.isRegistered(name)) {
                             val randomPass =
                                 java.util.UUID
                                     .randomUUID()
                                     .toString()
                                     .replace("-", "")
-                            authMe.registerPlayer(player, randomPass)
+                            api.registerPlayer(name, randomPass)
                             plugin.logger.info("Auto-registered premium player: $name")
                         }
 
-                        if (!authMe.isAuthenticated(player)) {
-                            authMe.forceLogin(player)
+                        if (!api.isAuthenticated(player)) {
+                            api.forceLogin(player)
                             player.sendMessage(
                                 Utils.getMessage(cfg, "messages.auto_login_premium", "&aYour premium account has been verified!"),
                             )

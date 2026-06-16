@@ -32,7 +32,7 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.1.2.build.70-stable")
-    compileOnly(files("libs/AuthMeReloaded-5.6.0.jar"))
+    compileOnly(files("libs/AuthMe-5.7.0-FORK-Universal.jar"))
     implementation(kotlin("stdlib"))
 }
 

@@ -9,14 +9,7 @@ class Main : JavaPlugin() {
         saveDefaultConfig()
         reloadConfig()
 
-        val authMe = Bridge(logger)
-        if (!authMe.findAuthMeApi()) {
-            logger.warning(
-                "AuthMe API not found via reflection. Plugin will still run but cannot force-login players until AuthMe is present.",
-            )
-        }
-
-        handlers = Handlers(this, config, authMe)
+        handlers = Handlers(this, config)
         handlers!!.register()
 
         logger.info("AuthMePlus enabled")
