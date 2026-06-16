@@ -1,7 +1,8 @@
 name: PremiumAuthBypass
 version: 3.1
 main: com.example.premiumauthbypass.PremiumAuthBypass
-api-version: 1.21
+api-version: 26.1
+folia-supported: true
 depend:
   - AuthMe
 commands:

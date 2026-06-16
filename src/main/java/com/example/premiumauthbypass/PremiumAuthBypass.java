@@ -206,7 +206,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
     // ----------------------------------
 
     private void saveLinkedConfigAsync() {
-        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+        Bukkit.getAsyncScheduler().runNow(this, task -> {
             try {
                 this.linkedConfig.save(this.linkedFile);
             } catch (IOException e) {
@@ -228,7 +228,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
         InetAddress pAddress = (player.getAddress() != null) ? player.getAddress().getAddress() : null;
         String currentIp = (pAddress != null) ? pAddress.getHostAddress() : null;
         
-        // Failsafe de sécurité: on arrête tout si c'est une IP de proxy
+        // Safety failsafe: stop if this is a proxy IP
         if (pAddress == null || !isIpSafe(pAddress)) {
             return; 
         }
@@ -257,10 +257,10 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
         if (isAuthenticated(player) && this.cfg.getBoolean("settings.prompt_on_join", true)) {
             boolean alreadyPrompted = this.linkedConfig.getBoolean(lower + ".prompted", false);
             if (!alreadyPrompted) {
-                Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+                Bukkit.getAsyncScheduler().runNow(this, task -> {
                     boolean isPremium = checkUsernameIsPremium(name);
                     if (isPremium) {
-                        Bukkit.getScheduler().runTask(this, () -> {
+                        player.getScheduler().run(this, scheduledTask -> {
                             if (player.isOnline()) {
                                 player.sendMessage(getMessage("messages.prompt_ip", "&eVoulez-vous activer le bypass de connexion pour cette IP ?"));
                                 player.sendMessage(getMessage("messages.prompt_accept_howto", "&eFaites &b/premium accept&e pour autoriser cette IP."));
@@ -268,7 +268,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
                                 this.linkedConfig.set(lower + ".prompted", true);
                                 saveLinkedConfigAsync();
                             }
-                        });
+                        }, null);
                     }
                 });
             }
@@ -353,7 +353,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
             return true;
         }
         
-        // Bloque l'enregistrement de l'IP de Velocity au lieu de celle du joueur
+        // Block storing Velocity's IP instead of the player's IP
         if (!isIpSafe(pAddress)) {
             p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&4&lErreur de sécurité &c: Le serveur n'est pas configuré correctement avec Velocity."));
             p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cPar sécurité, le bypass est désactivé. Informez l'administrateur de configurer le forwarding d'IP."));
@@ -363,10 +363,10 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
 
         p.sendMessage(getMessage("messages.mojang_check", "&eVérification de votre compte..."));
 
-        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+        Bukkit.getAsyncScheduler().runNow(this, task -> {
             boolean isPremium = checkUsernameIsPremium(p.getName());
             
-            Bukkit.getScheduler().runTask(this, () -> {
+            p.getScheduler().run(this, scheduledTask -> {
                 if (!isPremium) {
                     p.sendMessage(getMessage("messages.not_premium", "&cCe compte n'est pas Premium."));
                     return;
@@ -394,7 +394,7 @@ public class PremiumAuthBypass extends JavaPlugin implements Listener {
                 } else {
                     p.sendMessage(getMessage("messages.already_linked", "&aCette IP est déjà autorisée."));
                 }
-            });
+            }, null);
         });
         return true;
     }

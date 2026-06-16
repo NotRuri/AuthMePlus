@@ -33,8 +33,8 @@ It integrates with **AuthMe Reloaded** and securely links player accounts to the
 
 ## 📦 Requirements
 
-- Java 8+
-- Bukkit / Spigot / Paper server
+- Java 25
+- Paper / Folia server
 - **AuthMe Reloaded** (recommended for full functionality)
 
 ---
@@ -93,6 +93,11 @@ The plugin dynamically detects AuthMe API using:
 - `fr.xephi.authme.api.v3.AuthMeApi`
 - `fr.xephi.authme.api.API`
 - Legacy `AuthMe` API
+
+Tested target:
+- Minecraft 26.1.2
+- Java 25
+- Folia supported
 
 ---
 
