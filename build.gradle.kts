@@ -40,6 +40,17 @@ dependencies {
     compileOnly("fr.xephi:authme:5.7.0")
     compileOnly("net.dmulloy2:ProtocolLib:5.4.0")
     implementation(kotlin("stdlib"))
+
+    testImplementation(platform("org.junit:junit-bom:5.14.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("io.mockk:mockk:1.14.11")
+    testImplementation("io.papermc.paper:paper-api:26.1.2.build.70-stable")
+    testImplementation("net.dmulloy2:ProtocolLib:5.4.0")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {

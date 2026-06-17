@@ -2,6 +2,7 @@ package one.ruri.authmeplus.protocol
 
 import com.comphenix.protocol.PacketType
 import com.comphenix.protocol.ProtocolLibrary
+import com.comphenix.protocol.ProtocolManager
 import com.comphenix.protocol.events.ListenerPriority
 import com.comphenix.protocol.events.PacketAdapter
 import com.comphenix.protocol.events.PacketEvent
@@ -39,21 +40,21 @@ internal class Session(
     private val plugin: JavaPlugin,
     private val log: Logger,
     crackedPlayers: Set<String> = emptySet(),
+    private val httpClient: HttpClient =
+        HttpClient
+            .newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build(),
+    private val protocolManager: ProtocolManager = ProtocolLibrary.getProtocolManager(),
+    private val support: Handshake = Handshake(plugin, protocolManager, log),
 ) {
     private var crackedPlayers: Set<String> = crackedPlayers.map { it.lowercase() }.toSet()
-    private val protocolManager = ProtocolLibrary.getProtocolManager()
     private val verifiedPlayers = ConcurrentHashMap.newKeySet<String>()
     private val verifiedUUIDs = ConcurrentHashMap<String, UUID>()
     private val pendingSessions = ConcurrentHashMap<InetSocketAddress, PendingSession>()
     private val verifiedSkins = ConcurrentHashMap<String, SkinData>()
-    private val httpClient =
-        HttpClient
-            .newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .build()
     private val secureRandom = SecureRandom()
     private val keyPair: KeyPair
-    private val support = Handshake(plugin, protocolManager, log)
 
     data class PendingSession(
         val username: String,
@@ -280,7 +281,7 @@ internal class Session(
         return sharedSecret
     }
 
-    private fun verifySession(
+    internal fun verifySession(
         session: PendingSession,
         sharedSecret: SecretKey,
         player: Player,
