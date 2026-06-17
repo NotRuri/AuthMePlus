@@ -13,6 +13,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.util.UUID
+import java.util.concurrent.CompletableFuture
 import javax.crypto.spec.SecretKeySpec
 
 class SessionTest {
@@ -41,9 +42,11 @@ class SessionTest {
     @Test
     fun `returns null when HTTP request throws exception`() {
         val httpClient = mockk<HttpClient>()
-        every { httpClient.send(any<HttpRequest>(), any<HttpResponse.BodyHandler<*>>()) } throws RuntimeException("Connection refused")
+        val future = CompletableFuture<HttpResponse<String>>()
+        every { httpClient.sendAsync(any<HttpRequest>(), any<HttpResponse.BodyHandler<*>>()) } returns future
+        future.completeExceptionally(RuntimeException("Connection refused"))
 
-        val result = createSession(httpClient).verifySession(session(), secretKey(), mockk<Player>())
+        val result = createSession(httpClient).verifySession(session(), secretKey(), mockk<Player>()).get()
 
         assertNull(result)
     }
@@ -52,11 +55,12 @@ class SessionTest {
     fun `returns null on non-200 status code`() {
         val httpClient = mockk<HttpClient>()
         val response = mockk<HttpResponse<String>>()
-        every { httpClient.send(any<HttpRequest>(), any<HttpResponse.BodyHandler<*>>()) } returns response
         every { response.statusCode() } returns 404
         every { response.body() } returns "Not Found"
+        val future = CompletableFuture.completedFuture(response)
+        every { httpClient.sendAsync(any<HttpRequest>(), any<HttpResponse.BodyHandler<*>>()) } returns future
 
-        val result = createSession(httpClient).verifySession(session(), secretKey(), mockk<Player>())
+        val result = createSession(httpClient).verifySession(session(), secretKey(), mockk<Player>()).get()
 
         assertNull(result)
     }
@@ -65,11 +69,12 @@ class SessionTest {
     fun `returns null on 200 with blank body`() {
         val httpClient = mockk<HttpClient>()
         val response = mockk<HttpResponse<String>>()
-        every { httpClient.send(any<HttpRequest>(), any<HttpResponse.BodyHandler<*>>()) } returns response
         every { response.statusCode() } returns 200
         every { response.body() } returns ""
+        val future = CompletableFuture.completedFuture(response)
+        every { httpClient.sendAsync(any<HttpRequest>(), any<HttpResponse.BodyHandler<*>>()) } returns future
 
-        val result = createSession(httpClient).verifySession(session(), secretKey(), mockk<Player>())
+        val result = createSession(httpClient).verifySession(session(), secretKey(), mockk<Player>()).get()
 
         assertNull(result)
     }
@@ -78,11 +83,12 @@ class SessionTest {
     fun `returns null when JSON response has no uuid`() {
         val httpClient = mockk<HttpClient>()
         val response = mockk<HttpResponse<String>>()
-        every { httpClient.send(any<HttpRequest>(), any<HttpResponse.BodyHandler<*>>()) } returns response
         every { response.statusCode() } returns 200
         every { response.body() } returns """{"name":"TestUser"}"""
+        val future = CompletableFuture.completedFuture(response)
+        every { httpClient.sendAsync(any<HttpRequest>(), any<HttpResponse.BodyHandler<*>>()) } returns future
 
-        val result = createSession(httpClient).verifySession(session(), secretKey(), mockk<Player>())
+        val result = createSession(httpClient).verifySession(session(), secretKey(), mockk<Player>()).get()
 
         assertNull(result)
     }
@@ -91,11 +97,12 @@ class SessionTest {
     fun `returns VerificationResult on successful verification`() {
         val httpClient = mockk<HttpClient>()
         val response = mockk<HttpResponse<String>>()
-        every { httpClient.send(any<HttpRequest>(), any<HttpResponse.BodyHandler<*>>()) } returns response
         every { response.statusCode() } returns 200
         every { response.body() } returns """{"id":"550e8400e29b41d4a716446655440000","name":"TestUser"}"""
+        val future = CompletableFuture.completedFuture(response)
+        every { httpClient.sendAsync(any<HttpRequest>(), any<HttpResponse.BodyHandler<*>>()) } returns future
 
-        val result = createSession(httpClient).verifySession(session(), secretKey(), mockk<Player>())
+        val result = createSession(httpClient).verifySession(session(), secretKey(), mockk<Player>()).get()
 
         assertNotNull(result)
         assertEquals(UUID.fromString("550e8400-e29b-41d4-a716-446655440000"), result?.uuid)

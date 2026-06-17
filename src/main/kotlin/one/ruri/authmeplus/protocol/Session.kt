@@ -22,6 +22,7 @@ import java.security.KeyPairGenerator
 import java.security.SecureRandom
 import java.time.Duration
 import java.util.UUID
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
@@ -208,35 +209,40 @@ internal class Session(
         }
 
         val sharedSecret = decryptSharedSecret(event, session, address, sessionPlayer) ?: return
-        val result = verifySession(session, sharedSecret, sessionPlayer)
 
-        Bukkit.getGlobalRegionScheduler().run(plugin) {
-            try {
-                log.debug("Enabling encryption on connection for ${session.username}...")
-                if (!support.enableEncryption(sharedSecret, sessionPlayer)) {
-                    log.warning("Failed to enable encryption for ${session.username}")
-                    support.disconnectClient(sessionPlayer, "Encryption setup failed")
-                    return@run
+        verifySession(session, sharedSecret, sessionPlayer)
+            .thenAccept { result ->
+                Bukkit.getGlobalRegionScheduler().run(plugin) {
+                    try {
+                        log.debug("Enabling encryption on connection for ${session.username}...")
+                        if (!support.enableEncryption(sharedSecret, sessionPlayer)) {
+                            log.warning("Failed to enable encryption for ${session.username}")
+                            support.disconnectClient(sessionPlayer, "Encryption setup failed")
+                            return@run
+                        }
+
+                        log.debug("Encryption enabled for ${session.username}")
+
+                        if (result == null) {
+                            log.warning("Session verification failed for ${session.username} - disconnecting")
+                            support.disconnectClient(sessionPlayer, "Premium verification failed. Please try again.")
+                            return@run
+                        }
+
+                        support.injectFakeStart(sessionPlayer, result.uuid, session.username)
+                        verifiedPlayers += session.username.lowercase()
+                        log.info("Premium session fully verified: ${session.username} (${result.uuid})")
+                    } catch (e: Exception) {
+                        log.warning("Failed to finalize premium login: ${e.message}")
+                        support.disconnectClient(sessionPlayer, "Login finalization failed")
+                    } finally {
+                        pendingSessions.remove(address)
+                    }
                 }
-
-                log.debug("Encryption enabled for ${session.username}")
-
-                if (result == null) {
-                    log.warning("Session verification failed for ${session.username} - disconnecting")
-                    support.disconnectClient(sessionPlayer, "Premium verification failed. Please try again.")
-                    return@run
-                }
-
-                support.injectFakeStart(sessionPlayer, result.uuid, session.username)
-                verifiedPlayers += session.username.lowercase()
-                log.info("Premium session fully verified: ${session.username} (${result.uuid})")
-            } catch (e: Exception) {
-                log.warning("Failed to finalize premium login: ${e.message}")
-                support.disconnectClient(sessionPlayer, "Login finalization failed")
-            } finally {
-                pendingSessions.remove(address)
+            }.exceptionally { e ->
+                log.warning("Session verification chain failed unexpectedly: ${e.message}")
+                null
             }
-        }
     }
 
     private fun decryptSharedSecret(
@@ -285,7 +291,7 @@ internal class Session(
         session: PendingSession,
         sharedSecret: SecretKey,
         player: Player,
-    ): VerificationResult? {
+    ): CompletableFuture<VerificationResult?> {
         log.debug("Verify token matched for ${session.username} - calling hasJoined")
 
         val serverHash = support.computeServerHash("", sharedSecret, keyPair.public)
@@ -297,65 +303,61 @@ internal class Session(
                         "https://sessionserver.mojang.com/session/minecraft/hasJoined" +
                             "?username=${session.username}&serverId=$serverHash",
                     ),
-                ).GET()
+                ).timeout(Duration.ofSeconds(10))
+                .GET()
                 .build()
 
-        val response =
-            try {
-                log.debug("Querying Mojang session server for ${session.username}...")
-                httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-            } catch (e: Exception) {
-                log.warning("Session verification request failed for ${session.username}: ${e.message}")
-                return null
-            }
+        log.debug("Querying Mojang session server for ${session.username}...")
 
-        val httpCode = response.statusCode()
-        log.debug("hasJoined response for ${session.username}: HTTP $httpCode")
+        return httpClient
+            .sendAsync(request, HttpResponse.BodyHandlers.ofString())
+            .thenApply { response ->
+                val httpCode = response.statusCode()
+                log.debug("hasJoined response for ${session.username}: HTTP $httpCode")
 
-        if (httpCode != 200 || response.body().isBlank()) {
-            log.warning("Session verification FAILED for ${session.username} (HTTP $httpCode)")
-            return null
-        }
-
-        val uuidStr = support.extractUuidFromJson(response.body())
-        if (uuidStr == null) {
-            log.warning("Could not parse hasJoined response for ${session.username}: ${response.body()}")
-            return null
-        }
-
-        val realUuid = UUID.fromString(uuidStr)
-        log.info("Session VERIFIED for ${session.username} - Mojang UUID: $realUuid")
-
-        verifiedUUIDs[session.username.lowercase()] = realUuid
-
-        val body = response.body()
-        try {
-            val root = JsonParser.parseString(body).asJsonObject
-            val properties = root.getAsJsonArray("properties")
-            if (properties == null) {
-                log.warning("hasJoined response for ${session.username} has no properties array (no skin data available)")
-            } else {
-                log.debug("hasJoined response for ${session.username} has ${properties.size()} properties")
-                for (element in properties) {
-                    val prop = element.asJsonObject
-                    val propName = prop.get("name").asString
-                    log.debug("Skin property found: $propName")
-                    if (propName == "textures") {
-                        val value = prop.get("value").asString
-                        val signature = prop.get("signature").asString
-                        log.debug(
-                            "Textures property extracted for ${session.username}: value.length=${value.length}, signature.length=${signature.length}",
-                        )
-                        verifiedSkins[session.username.lowercase()] = SkinData(value, signature)
-                        log.debug("Skin data stored for ${session.username}, map size=${verifiedSkins.size}")
-                        break
-                    }
+                if (httpCode != 200 || response.body().isBlank()) {
+                    log.warning("Session verification FAILED for ${session.username} (HTTP $httpCode)")
+                    return@thenApply null
                 }
-            }
-        } catch (e: Exception) {
-            log.warning("Failed to parse skin data from hasJoined response: ${e.message}")
-        }
 
-        return VerificationResult(realUuid)
+                val uuidStr = support.extractUuidFromJson(response.body())
+                if (uuidStr == null) {
+                    log.warning("Could not parse hasJoined response for ${session.username}: ${response.body()}")
+                    return@thenApply null
+                }
+
+                val realUuid = UUID.fromString(uuidStr)
+                log.info("Session VERIFIED for ${session.username} - Mojang UUID: $realUuid")
+                verifiedUUIDs[session.username.lowercase()] = realUuid
+
+                val body = response.body()
+                try {
+                    val root = JsonParser.parseString(body).asJsonObject
+                    val properties = root.getAsJsonArray("properties")
+                    if (properties == null) {
+                        log.warning("hasJoined response for ${session.username} has no properties array (no skin data available)")
+                    } else {
+                        for (element in properties) {
+                            val prop = element.asJsonObject
+                            val propName = prop.get("name").asString
+                            if (propName == "textures") {
+                                verifiedSkins[session.username.lowercase()] =
+                                    SkinData(
+                                        prop.get("value").asString,
+                                        prop.get("signature").asString,
+                                    )
+                                break
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    log.warning("Failed to parse skin data from hasJoined response: ${e.message}")
+                }
+
+                VerificationResult(realUuid)
+            }.exceptionally { e ->
+                log.warning("Session verification request failed for ${session.username}: ${e.message}")
+                null
+            }
     }
 }
