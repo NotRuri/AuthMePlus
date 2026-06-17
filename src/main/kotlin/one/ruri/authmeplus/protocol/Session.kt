@@ -33,7 +33,6 @@ data class SkinData(
 
 data class VerificationResult(
     val uuid: UUID,
-    val verified: Boolean,
 )
 
 internal class Session(
@@ -220,13 +219,16 @@ internal class Session(
                 }
 
                 log.debug("Encryption enabled for ${session.username}")
-                support.injectFakeStart(sessionPlayer, result.uuid, session.username)
-                if (result.verified) {
-                    verifiedPlayers += session.username.lowercase()
-                    log.info("Premium session fully verified: ${session.username} (${result.uuid})")
-                } else {
-                    log.info("Session unverifiable for ${session.username} - treating as cracked")
+
+                if (result == null) {
+                    log.warning("Session verification failed for ${session.username} - disconnecting")
+                    support.disconnectClient(sessionPlayer, "Premium verification failed. Please try again.")
+                    return@run
                 }
+
+                support.injectFakeStart(sessionPlayer, result.uuid, session.username)
+                verifiedPlayers += session.username.lowercase()
+                log.info("Premium session fully verified: ${session.username} (${result.uuid})")
             } catch (e: Exception) {
                 log.warning("Failed to finalize premium login: ${e.message}")
                 support.disconnectClient(sessionPlayer, "Login finalization failed")
@@ -282,7 +284,7 @@ internal class Session(
         session: PendingSession,
         sharedSecret: SecretKey,
         player: Player,
-    ): VerificationResult {
+    ): VerificationResult? {
         log.debug("Verify token matched for ${session.username} - calling hasJoined")
 
         val serverHash = support.computeServerHash("", sharedSecret, keyPair.public)
@@ -303,9 +305,7 @@ internal class Session(
                 httpClient.send(request, HttpResponse.BodyHandlers.ofString())
             } catch (e: Exception) {
                 log.warning("Session verification request failed for ${session.username}: ${e.message}")
-                log.info("Falling back to cracked mode for ${session.username}")
-                val offlineUuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + session.username).toByteArray())
-                return VerificationResult(offlineUuid, false)
+                return null
             }
 
         val httpCode = response.statusCode()
@@ -313,17 +313,13 @@ internal class Session(
 
         if (httpCode != 200 || response.body().isBlank()) {
             log.warning("Session verification FAILED for ${session.username} (HTTP $httpCode)")
-            log.info("Falling back to cracked mode for ${session.username}")
-            val offlineUuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + session.username).toByteArray())
-            return VerificationResult(offlineUuid, false)
+            return null
         }
 
         val uuidStr = support.extractUuidFromJson(response.body())
         if (uuidStr == null) {
             log.warning("Could not parse hasJoined response for ${session.username}: ${response.body()}")
-            log.info("Falling back to cracked mode for ${session.username}")
-            val offlineUuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + session.username).toByteArray())
-            return VerificationResult(offlineUuid, false)
+            return null
         }
 
         val realUuid = UUID.fromString(uuidStr)
@@ -359,6 +355,6 @@ internal class Session(
             log.warning("Failed to parse skin data from hasJoined response: ${e.message}")
         }
 
-        return VerificationResult(realUuid, true)
+        return VerificationResult(realUuid)
     }
 }
